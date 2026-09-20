@@ -129,7 +129,7 @@ struct PreferencesLocalizationControllerTests {
 
         #expect(outcome == nil)
         #expect(await service.consumeCalls.count == 1)
-        if case .failure(let message) = controller.lastReset?.result {
+        if case .failure(.message(let message)) = controller.lastReset?.result {
             #expect(message.contains("denied"))
         } else {
             Issue.record("Expected a persisted failure result")

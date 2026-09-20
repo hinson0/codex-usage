@@ -68,7 +68,7 @@ public actor CodexAppServerClient: UsageService {
     private func ensureReady() async throws {
         if isReady { return }
         guard let executableURL = locator.locate() else {
-            throw UsageServiceError.unavailable("Codex command-line tool not found")
+            throw UsageServiceError.binaryMissing
         }
 
         let transport = transportFactory()
@@ -106,6 +106,13 @@ public actor CodexAppServerClient: UsageService {
             if let error = object["error"] as? [String: Any] {
                 let message = error["message"] as? String ?? "Unknown JSON-RPC error"
                 let code = error["code"] as? Int
+                let normalized = message.lowercased()
+                if normalized.contains("not logged")
+                    || normalized.contains("unauthorized")
+                    || normalized.contains("authentication")
+                {
+                    throw UsageServiceError.authenticationRequired
+                }
                 throw UsageServiceError.protocolError(code.map { "\(message) (\($0))" } ?? message)
             }
             guard let result = object["result"] else {

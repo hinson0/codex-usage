@@ -55,7 +55,7 @@ struct AppServerClientTests {
     func jsonRPCErrorBecomesProtocolError() async {
         let transport = ScriptedTransport(events: [
             .line(response(id: 0, result: [:])),
-            .line(errorResponse(id: 1, code: -32000, message: "not logged in")),
+            .line(errorResponse(id: 1, code: -32000, message: "invalid request")),
         ])
         let client = makeClient(transports: [transport])
 
@@ -63,7 +63,25 @@ struct AppServerClientTests {
             _ = try await client.readRateLimits()
             Issue.record("Expected protocol error")
         } catch let error as UsageServiceError {
-            #expect(error == .protocolError("not logged in (-32000)"))
+            #expect(error == .protocolError("invalid request (-32000)"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test
+    func authenticationRPCErrorGetsTypedForLocalization() async {
+        let transport = ScriptedTransport(events: [
+            .line(response(id: 0, result: [:])),
+            .line(errorResponse(id: 1, code: -32000, message: "not logged in")),
+        ])
+        let client = makeClient(transports: [transport])
+
+        do {
+            _ = try await client.readRateLimits()
+            Issue.record("Expected authentication error")
+        } catch let error as UsageServiceError {
+            #expect(error == .authenticationRequired)
         } catch {
             Issue.record("Unexpected error: \(error)")
         }

@@ -27,6 +27,7 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case loading
     case loginRequired
     case binaryMissing
+    case requestTimedOut
     case errorPrefix
     case resetSucceeded
     case resetAlreadyRedeemed
@@ -65,6 +66,7 @@ public enum LocalizationCatalog {
             .loading: "正在读取 Codex 用量…",
             .loginRequired: "请先在 Codex 中登录",
             .binaryMissing: "找不到 Codex 命令行程序",
+            .requestTimedOut: "请求超时，请重试",
             .errorPrefix: "错误：%@",
             .resetSucceeded: "成功",
             .resetAlreadyRedeemed: "已完成（重复请求）",
@@ -100,6 +102,7 @@ public enum LocalizationCatalog {
             .loading: "Loading Codex usage…",
             .loginRequired: "Sign in to Codex first",
             .binaryMissing: "Codex command-line tool not found",
+            .requestTimedOut: "Request timed out. Try again.",
             .errorPrefix: "Error: %@",
             .resetSucceeded: "Successful",
             .resetAlreadyRedeemed: "Already redeemed",

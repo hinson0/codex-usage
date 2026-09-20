@@ -17,7 +17,7 @@ public struct MenuPresentation: Sendable {
     public let lastReset: LastResetRecord?
     public let isRefreshing: Bool
     public let isRedeeming: Bool
-    public let errorMessage: String?
+    public let error: UsageDisplayError?
     public let appearance: AppAppearance
     public let language: AppLanguage
     public let timeZone: TimeZone
@@ -27,7 +27,7 @@ public struct MenuPresentation: Sendable {
         lastReset: LastResetRecord?,
         isRefreshing: Bool,
         isRedeeming: Bool,
-        errorMessage: String?,
+        error: UsageDisplayError?,
         appearance: AppAppearance,
         language: AppLanguage,
         timeZone: TimeZone = .current
@@ -36,7 +36,7 @@ public struct MenuPresentation: Sendable {
         self.lastReset = lastReset
         self.isRefreshing = isRefreshing
         self.isRedeeming = isRedeeming
-        self.errorMessage = errorMessage
+        self.error = error
         self.appearance = appearance
         self.language = language
         self.timeZone = timeZone
@@ -94,8 +94,12 @@ public struct MenuPresentation: Sendable {
         switch lastReset.result {
         case .outcome(let outcome):
             result = LocalizationCatalog.resetOutcome(outcome, language: language)
-        case .failure(let message):
-            result = LocalizationCatalog.format(.resetFailed, language: language, message)
+        case .failure(let error):
+            result = LocalizationCatalog.format(
+                .resetFailed,
+                language: language,
+                localizedError(error)
+            )
         }
         let date = LocalizationCatalog.dateTime(
             lastReset.attemptedAt,
@@ -106,7 +110,7 @@ public struct MenuPresentation: Sendable {
     }
 
     public var errorText: String? {
-        errorMessage.map { LocalizationCatalog.format(.errorPrefix, language: language, $0) }
+        error.map(localizedError)
     }
 
     public var appearanceOptions: [MenuOption<AppAppearance>] {
@@ -135,5 +139,14 @@ public struct MenuPresentation: Sendable {
 
     private func languageOption(_ value: AppLanguage, key: LocalizationKey) -> MenuOption<AppLanguage> {
         MenuOption(value: value, title: text(key), isSelected: language == value)
+    }
+
+    private func localizedError(_ error: UsageDisplayError) -> String {
+        switch error {
+        case .authenticationRequired: text(.loginRequired)
+        case .binaryMissing: text(.binaryMissing)
+        case .timeout: text(.requestTimedOut)
+        case .message(let message): LocalizationCatalog.format(.errorPrefix, language: language, message)
+        }
     }
 }

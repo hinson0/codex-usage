@@ -2,7 +2,7 @@ import Foundation
 
 public enum LastResetResult: Codable, Equatable, Sendable {
     case outcome(ResetOutcome)
-    case failure(String)
+    case failure(UsageDisplayError)
 }
 
 public struct LastResetRecord: Codable, Equatable, Sendable {

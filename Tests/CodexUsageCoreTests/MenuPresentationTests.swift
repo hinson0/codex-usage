@@ -11,7 +11,7 @@ struct MenuPresentationTests {
             lastReset: nil,
             isRefreshing: false,
             isRedeeming: false,
-            errorMessage: nil,
+            error: nil,
             appearance: .system,
             language: .zhHans
         )
@@ -30,7 +30,7 @@ struct MenuPresentationTests {
             lastReset: nil,
             isRefreshing: false,
             isRedeeming: false,
-            errorMessage: nil,
+            error: nil,
             appearance: .dark,
             language: .english
         )
@@ -48,7 +48,7 @@ struct MenuPresentationTests {
             lastReset: nil,
             isRefreshing: false,
             isRedeeming: true,
-            errorMessage: nil,
+            error: nil,
             appearance: .system,
             language: .english
         )
@@ -64,7 +64,7 @@ struct MenuPresentationTests {
             lastReset: nil,
             isRefreshing: false,
             isRedeeming: false,
-            errorMessage: nil,
+            error: nil,
             appearance: .light,
             language: .english
         )
@@ -85,7 +85,7 @@ struct MenuPresentationTests {
             ),
             isRefreshing: false,
             isRedeeming: false,
-            errorMessage: "offline",
+            error: .message("offline"),
             appearance: .system,
             language: .english,
             timeZone: TimeZone(secondsFromGMT: 0)!
@@ -94,6 +94,51 @@ struct MenuPresentationTests {
         #expect(presentation.lastResetText.contains("Already redeemed"))
         #expect(presentation.errorText == "Error: offline")
         #expect(presentation.nextResetText?.hasPrefix("Next reset: ") == true)
+    }
+
+    @Test
+    func typedOperationalErrorsRelocalizeWithTheSelectedLanguage() {
+        let chinese = MenuPresentation(
+            snapshot: nil,
+            lastReset: nil,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: .authenticationRequired,
+            appearance: .system,
+            language: .zhHans
+        )
+        let english = MenuPresentation(
+            snapshot: nil,
+            lastReset: nil,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: .binaryMissing,
+            appearance: .system,
+            language: .english
+        )
+
+        #expect(chinese.errorText == "请先在 Codex 中登录")
+        #expect(english.errorText == "Codex command-line tool not found")
+    }
+
+    @Test
+    func persistedResetFailureRelocalizesInsteadOfKeepingDeadCopy() {
+        let presentation = MenuPresentation(
+            snapshot: nil,
+            lastReset: LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: 1_795_000_000),
+                result: .failure(.timeout)
+            ),
+            isRefreshing: false,
+            isRedeeming: false,
+            error: nil,
+            appearance: .system,
+            language: .zhHans,
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        #expect(presentation.lastResetText.contains("请求超时"))
+        #expect(!presentation.lastResetText.contains("Request timed out"))
     }
 }
 

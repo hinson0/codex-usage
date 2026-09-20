@@ -12,7 +12,7 @@ struct UsagePopoverView: View {
             lastReset: controller.lastReset,
             isRefreshing: controller.isRefreshing,
             isRedeeming: controller.isRedeeming,
-            errorMessage: controller.errorMessage,
+            error: controller.displayError,
             appearance: controller.appearance,
             language: controller.language
         )

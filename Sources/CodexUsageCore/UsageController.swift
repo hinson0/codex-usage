@@ -4,6 +4,8 @@ import Foundation
 public enum UsageServiceError: Error, Equatable, Sendable, LocalizedError {
     case transport(String)
     case timeout
+    case authenticationRequired
+    case binaryMissing
     case protocolError(String)
     case unavailable(String)
 
@@ -13,13 +15,33 @@ public enum UsageServiceError: Error, Equatable, Sendable, LocalizedError {
             return message
         case .timeout:
             return "Request timed out"
+        case .authenticationRequired:
+            return "Sign in to Codex first"
+        case .binaryMissing:
+            return "Codex command-line tool not found"
         }
     }
 
     var isRetryableTransportFailure: Bool {
         switch self {
         case .transport, .timeout: true
-        case .protocolError, .unavailable: false
+        case .authenticationRequired, .binaryMissing, .protocolError, .unavailable: false
+        }
+    }
+}
+
+public enum UsageDisplayError: Codable, Equatable, Sendable {
+    case authenticationRequired
+    case binaryMissing
+    case timeout
+    case message(String)
+
+    init(_ error: Error) {
+        switch error as? UsageServiceError {
+        case .authenticationRequired?: self = .authenticationRequired
+        case .binaryMissing?: self = .binaryMissing
+        case .timeout?: self = .timeout
+        default: self = .message(error.localizedDescription)
         }
     }
 }
@@ -34,7 +56,7 @@ public final class UsageController: ObservableObject {
     @Published public private(set) var snapshot: UsageSnapshot?
     @Published public private(set) var isRefreshing = false
     @Published public private(set) var isRedeeming = false
-    @Published public private(set) var errorMessage: String?
+    @Published public private(set) var displayError: UsageDisplayError?
     @Published public private(set) var lastReset: LastResetRecord?
     @Published public private(set) var appearance: AppAppearance
     @Published public private(set) var language: AppLanguage
@@ -119,9 +141,9 @@ public final class UsageController: ObservableObject {
         } catch {
             persistLastReset(LastResetRecord(
                 attemptedAt: now(),
-                result: .failure(error.localizedDescription)
+                result: .failure(UsageDisplayError(error))
             ))
-            errorMessage = error.localizedDescription
+            displayError = UsageDisplayError(error)
             return nil
         }
     }
@@ -146,9 +168,9 @@ public final class UsageController: ObservableObject {
     private func performRead() async {
         do {
             snapshot = try await service.readRateLimits()
-            errorMessage = nil
+            displayError = nil
         } catch {
-            errorMessage = error.localizedDescription
+            displayError = UsageDisplayError(error)
         }
     }
 
@@ -157,7 +179,7 @@ public final class UsageController: ObservableObject {
         do {
             try preferences.saveLastReset(record)
         } catch {
-            errorMessage = error.localizedDescription
+            displayError = UsageDisplayError(error)
         }
     }
 }
