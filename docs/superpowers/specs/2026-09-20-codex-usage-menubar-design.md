@@ -128,8 +128,10 @@ Failure to locate a binary is shown as an actionable menu error rather than term
 
 ### Status Bar
 
-- Loaded: `Codex <remaining>%(<count>次)`.
-- Loading with no cached snapshot: `Codex --%(--次)`.
+- Loaded with no resets: `Codex <remaining>%`.
+- Loaded with resets in Simplified Chinese: `Codex <remaining>%(x 次)`.
+- Loaded with resets in English: `Codex <remaining>% (x resets)` with singular `reset` for one.
+- Loading with no cached snapshot: `Codex --%`.
 - Error with a cached snapshot: keep the last values and expose the error in the menu.
 - Error without a cached snapshot: `Codex --%`.
 
@@ -157,7 +159,7 @@ The menu is ordered as follows:
 8. **“立即刷新”**.
 9. **“退出”**.
 
-Dates use the current system locale and time zone.
+Dates use the effective app language and current system time zone.
 
 ### Localization
 
