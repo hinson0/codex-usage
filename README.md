@@ -7,14 +7,14 @@
 **把 Codex 剩余用量和可用 reset，直接放进 macOS 状态栏。**
 
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#requirements)
-[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#development-status)
-[![Status: Work in progress](https://img.shields.io/badge/status-work%20in%20progress-F59E0B)](#development-status)
+[![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#build-and-run)
+[![Status: Local build verified](https://img.shields.io/badge/status-local%20build%20verified-22C55E)](#build-and-run)
 
 [English](#english) · [简体中文](#简体中文)
 
 <img src="docs/images/codex-usage-light-dark.png" alt="Codex Usage menu bar design in light and dark appearances" width="100%">
 
-<sub>Design target — implementation is in progress. / 设计目标图——程序正在实现中。</sub>
+<sub>Implemented light and dark design target. / 已实现的浅色与深色设计目标。</sub>
 
 </div>
 
@@ -53,11 +53,17 @@ Codex 73% (2 resets)  Two resets available
 - Never redeems a reset automatically.
 - Automated tests never consume a real reset.
 
-### Development status
+### Build and run
 
-This repository is under active development. The product design and protocol path are validated; the native app, packaging, and end-to-end verification are still being completed. There is no downloadable release yet.
+The app builds with Apple Command Line Tools; full Xcode is not required. From the repository root:
 
-Build and installation instructions will be added once the first runnable `.app` passes the full verification checklist.
+```bash
+scripts/test.sh
+scripts/build-app.sh
+open dist/CodexUsage.app
+```
+
+`scripts/build-app.sh` creates an ad-hoc-signed local build at `dist/CodexUsage.app`. It is intended for this Mac; distributing it to other Macs requires Developer ID signing and notarization.
 
 ### Requirements
 
@@ -105,11 +111,17 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - 永远不会自动使用 reset。
 - 自动化测试不会消费真实 reset。
 
-### 开发状态
+### 构建与运行
 
-项目正在开发中。目前已经确认产品设计和协议方案；原生 App、打包及端到端验证仍在完成。当前还没有可下载的正式版本。
+使用 Apple Command Line Tools 即可构建，不要求安装完整 Xcode。在仓库根目录运行：
 
-首个可运行 `.app` 完整通过验证后，会补充构建和安装说明。
+```bash
+scripts/test.sh
+scripts/build-app.sh
+open dist/CodexUsage.app
+```
+
+`scripts/build-app.sh` 会在 `dist/CodexUsage.app` 生成经过 ad-hoc 签名的本机版本。若要分发给其他 Mac，还需要 Developer ID 签名和公证。
 
 ### 环境要求
 
