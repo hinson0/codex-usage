@@ -34,8 +34,10 @@ The app must also let the user consume an available reset, clearly report when n
 - A detailed menu with quota timing, reset availability, refresh state, last reset record, manual refresh, and quit.
 - Confirmed consumption of one reset through Codex App Server.
 - A native appearance submenu with Follow System, Light, and Dark choices.
+- A language submenu with Follow System, English, and Simplified Chinese choices.
 - Automatic refresh and recovery when the App Server process exits.
-- Local persistence for the most recent reset attempt and selected appearance.
+- Local persistence for the most recent reset attempt, selected appearance, and selected language.
+- A polished bilingual README and public-repository-safe design assets.
 - Unit tests, an App Server read-only integration probe, release compilation, `.app` packaging, ad-hoc signing, and a launch smoke test.
 
 ### Not Included
@@ -76,6 +78,7 @@ The major components are:
 4. **PreferencesStore**
    - Stores one reset record in `UserDefaults`: attempted timestamp, outcome, and optional user-facing error text.
    - Stores the selected appearance as `system`, `light`, or `dark`; the default is `system`.
+   - Stores the selected language as `system`, `english`, or `zhHans`; the default is `system`.
    - Never stores credentials, account identifiers, or reset credit identifiers.
 
 5. **MenuBarApplication**
@@ -83,6 +86,7 @@ The major components are:
    - Updates the title and menu from controller state.
    - Presents an `NSAlert` confirmation before consuming a reset.
    - Applies the selected appearance to the status-menu UI without changing the system-wide macOS setting.
+   - Resolves the selected language at runtime and updates every visible string without relaunching.
    - Uses `LSUIElement=true` in the packaged app so it has no Dock icon.
 
 ## Codex Binary Discovery
@@ -131,7 +135,7 @@ Failure to locate a binary is shown as an actionable menu error rather than term
 
 ### Selected Visual Direction
 
-The selected design is the compact horizontal-usage-bar direction shown in the project reference image at `assets/codex-usage-menubar-theme-reference.png`.
+The selected design is the compact horizontal-usage-bar direction shown in the project reference image at `docs/images/codex-usage-light-dark.png`.
 
 - The popover uses a thin horizontal bar for the primary Codex remaining percentage.
 - Information is presented as compact native rows with lightweight separators.
@@ -149,10 +153,19 @@ The menu is ordered as follows:
 4. Reset action or disabled **“当前没有可用 reset”**.
 5. Last reset time and result, or **“尚未使用过 reset”**.
 6. **“外观”** submenu with **“跟随系统”**, **“浅色”**, and **“深色”**; the active choice has a checkmark.
-7. **“立即刷新”**.
-8. **“退出”**.
+7. **“语言”** submenu with **“跟随系统”**, **“English”**, and **“简体中文”**; the active choice has a checkmark.
+8. **“立即刷新”**.
+9. **“退出”**.
 
 Dates use the current system locale and time zone.
+
+### Localization
+
+- System language maps any `zh-*` locale to Simplified Chinese; other locales use English.
+- A manual language choice overrides later system-language changes and survives relaunch.
+- English and Simplified Chinese expose the same controls, states, error meaning, and accessibility labels.
+- English status titles use `Codex 73% (1 reset)` or `Codex 73% (2 resets)`; Simplified Chinese uses `Codex 73%(2 次)`.
+- Missing or zero reset data hides the status-title suffix in both languages.
 
 ## Error Handling
 
@@ -184,6 +197,7 @@ Unit tests cover:
 - All reset outcomes and their display text.
 - Last-reset persistence and decoding invalid stored data.
 - Appearance selection, persistence, default system-following behavior, and menu checkmarks.
+- English and Simplified Chinese copy parity, system-language resolution, manual override, runtime switching, and persistence.
 - Idempotency-key reuse for one logical retry.
 - JSON-RPC request/response matching and error propagation through an injectable transport.
 
@@ -221,5 +235,7 @@ The minimum deployment target is macOS 13. The bundle identifier is `local.codex
 - A positive reset count enables a confirmed reset action.
 - Reset attempts use an idempotency key, refresh usage afterward, and display the persisted latest time and result.
 - The appearance submenu switches between Follow System, Light, and Dark, persists the choice, and does not alter the system-wide appearance.
+- The language submenu switches between Follow System, English, and Simplified Chinese at runtime and persists the choice.
+- The root README presents matching English and Simplified Chinese project information, embeds the selected light/dark design image, and labels unfinished functionality honestly.
 - Network, authentication, protocol, and missing-binary errors remain visible and recoverable.
 - All tests pass, the release binary compiles, the `.app` is signed, and the launch smoke test succeeds on the inspected Mac.
