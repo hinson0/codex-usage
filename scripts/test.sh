@@ -41,3 +41,4 @@ swiftc \
 
 "$repo_root/Tests/ReleaseScriptsTests.sh"
 "$repo_root/Tests/ReleaseArtifactsTests.sh"
+"$repo_root/Tests/ReleaseWorkflowTests.sh"

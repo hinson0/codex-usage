@@ -1,0 +1,188 @@
+name: Release
+
+'on':
+  push:
+    branches:
+      - main
+    paths:
+      - Packaging/Info.plist
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the validated artifacts as a GitHub Release
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: codex-usage-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      SHOULD_PUBLISH: ${{ (github.event_name == 'push' && vars.RELEASES_ENABLED == 'true') || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+    steps:
+      - name: Check out the verified commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read release metadata
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/release-lib.sh
+          version="$(release_short_version Packaging/Info.plist)"
+          build_number="$(release_build_number Packaging/Info.plist)"
+          release_validate_semver "$version"
+          [[ "$build_number" =~ ^[1-9][0-9]*$ ]]
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+          echo "tag=$(release_tag "$version")" >> "$GITHUB_OUTPUT"
+          echo "asset_stem=$(release_asset_stem "$version")" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Apple toolchain
+        shell: bash
+        run: echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+
+      - name: Run tests
+        shell: bash
+        run: scripts/test.sh
+
+      - name: Package release artifacts
+        shell: bash
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: scripts/package-release.sh
+
+      - name: Verify release artifacts
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+          ASSET_STEM: ${{ steps.metadata.outputs.asset_stem }}
+        run: |
+          set -euo pipefail
+          source scripts/release-lib.sh
+          release_dir="dist/release"
+          zip_path="$release_dir/$ASSET_STEM.zip"
+          dmg_path="$release_dir/$ASSET_STEM.dmg"
+          [[ -f "$zip_path" ]]
+          [[ -f "$dmg_path" ]]
+          [[ -f "$release_dir/appcast.xml" ]]
+          [[ -f "$release_dir/SHA256SUMS" ]]
+          release_validate_zip "$zip_path" "$VERSION"
+          (cd "$release_dir" && shasum -a 256 -c SHA256SUMS)
+          xmllint --noout "$release_dir/appcast.xml"
+          codesign --verify --deep --strict dist/CodexUsage.app
+          architectures="$(lipo -archs dist/CodexUsage.app/Contents/MacOS/CodexUsage)"
+          [[ " $architectures " == *" arm64 "* ]]
+          [[ " $architectures " == *" x86_64 "* ]]
+
+      - name: Create or resume draft release
+        id: draft
+        if: env.SHOULD_PUBLISH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          ASSET_STEM: ${{ steps.metadata.outputs.asset_stem }}
+        run: |
+          set -euo pipefail
+          release_dir="dist/release"
+          release_json="$(
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" +              --jq ".[] | select(.tag_name == \"$TAG\")" +              | head -n 1
+          )"
+
+          if [[ -z "$release_json" ]]; then
+            if [[ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]]; then
+              echo "Tag $TAG already exists without a resumable draft release." >&2
+              exit 1
+            fi
+            gh release create "$TAG" +              --target "$GITHUB_SHA" +              --title "Codex Usage $VERSION" +              --generate-notes +              --draft
+            release_json="$(
+              gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" +                --jq ".[] | select(.tag_name == \"$TAG\")" +                | head -n 1
+            )"
+          fi
+
+          [[ "$(jq -r '.draft' <<<"$release_json")" == "true" ]] || {
+            echo "Release $TAG is already published and is immutable." >&2
+            exit 1
+          }
+          [[ "$(jq -r '.target_commitish' <<<"$release_json")" == "$GITHUB_SHA" ]] || {
+            echo "Draft release $TAG targets a different commit." >&2
+            exit 1
+          }
+
+          release_id="$(jq -r '.id' <<<"$release_json")"
+          files=(
+            "$release_dir/$ASSET_STEM.dmg"
+            "$release_dir/$ASSET_STEM.zip"
+            "$release_dir/SHA256SUMS"
+            "$release_dir/appcast.xml"
+          )
+          resume_dir="$(mktemp -d "$RUNNER_TEMP/codex-usage-release-resume.XXXXXX")"
+          trap 'rm -rf "$resume_dir"' EXIT
+
+          for file in "${files[@]}"; do
+            name="$(basename "$file")"
+            asset_id="$(
+              gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" +                --jq ".[] | select(.name == \"$name\") | .id" +                | head -n 1
+            )"
+            if [[ -n "$asset_id" ]]; then
+              gh api +                -H "Accept: application/octet-stream" +                "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" +                > "$resume_dir/$name"
+              cmp -s "$file" "$resume_dir/$name" || {
+                echo "Existing draft asset $name differs from the validated artifact." >&2
+                exit 1
+              }
+            else
+              gh release upload "$TAG" "$file"
+            fi
+          done
+
+          expected_names="$(printf '%s\n' "$ASSET_STEM.dmg" "$ASSET_STEM.zip" SHA256SUMS appcast.xml | sort)"
+          actual_names="$(
+            gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" +              --jq '.[].name' +              | sort
+          )"
+          [[ "$actual_names" == "$expected_names" ]] || {
+            echo "Draft release assets do not match the four-file contract." >&2
+            exit 1
+          }
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        if: env.SHOULD_PUBLISH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: gh release edit "$TAG" --draft=false
+
+      - name: Verify public release assets
+        if: env.SHOULD_PUBLISH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          set -euo pipefail
+          download_dir="$(mktemp -d "$RUNNER_TEMP/codex-usage-public-release.XXXXXX")"
+          trap 'rm -rf "$download_dir"' EXIT
+          gh release download "$TAG" --dir "$download_dir"
+          (cd "$download_dir" && shasum -a 256 -c SHA256SUMS)
+          [[ "$(gh release view "$TAG" --json isDraft --jq '.isDraft')" == "false" ]]
+
+          stable_feed="$download_dir/stable-appcast.xml"
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL +              https://github.com/hinson0/codex-usage/releases/latest/download/appcast.xml +              -o "$stable_feed"; then
+              break
+            fi
+            [[ "$attempt" != "6" ]] || exit 1
+            sleep 5
+          done
+          cmp -s "$download_dir/appcast.xml" "$stable_feed"
