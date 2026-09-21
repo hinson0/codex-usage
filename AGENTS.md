@@ -47,7 +47,36 @@ The installed Command Line Tools SwiftPM runner does not execute registered test
 
 ## Versioning
 
-`Packaging/Info.plist` is the version source of truth. Every code change increments `CFBundleShortVersionString` once using `a.b.c` semantic versioning and increments the integer `CFBundleVersion` once.
+`Packaging/Info.plist` is the version source of truth. Bump the version only when
+users need a newly built App to receive the change. A commit, push, or merged
+documentation change is not by itself a reason to bump.
+
+### Version decision
+
+Ask: **Does this changeset alter the App that users download or run?**
+
+- **Bump once for the release-worthy changeset** when it changes Swift runtime
+  behavior, user-visible functionality, bundle configuration, an embedded
+  dependency, update compatibility, or the contents/behavior of the shipped
+  `.app`, DMG, or ZIP.
+- **Do not bump** for changes limited to `README*`, `AGENTS.md`, documentation,
+  plans/specs, screenshots, design QA, comments, tests, GitHub Actions, CI,
+  repository metadata, or developer tooling when the distributed App is
+  unchanged.
+- **Do not bump separately** for documentation, tests, or CI changes that merely
+  accompany the same unreleased App change.
+- **Do not bump per commit.** Keep one version for the whole unreleased App
+  changeset, and change the plist only when that changeset is ready to publish.
+- **Never reuse a published version.** Once `vX.Y.Z` exists, the next change that
+  requires a new App must use a higher version.
+
+When no bump is required, leave both plist version keys untouched. This also
+means no automatic App Release is triggered.
+
+### Version numbers
+
+For every App version bump, increment `CFBundleShortVersionString` using `a.b.c`
+semantic versioning and increment the integer `CFBundleVersion` once.
 
 - **Major (`a`)**: incompatible behavior, removed compatibility, or a breaking interface. Increment `a`; reset `b` and `c` to zero.
 - **Minor (`b`)**: backward-compatible user-visible functionality. Increment `b`; reset `c` to zero.
@@ -55,11 +84,16 @@ The installed Command Line Tools SwiftPM runner does not execute registered test
 
 Examples:
 
+- README-, AGENTS-, docs-, tests-, or CI-only change: no version bump.
+- Fixing a release workflow without changing the generated App: no version bump.
+- Changing Sparkle or another embedded dependency: bump according to the user
+  impact.
 - `0.2.0` → `0.2.1` for a bug fix.
 - `0.2.1` → `0.3.0` for a new feature.
 - `0.3.4` → `1.0.0` for a breaking release.
 
-Documentation-only edits do not require a version bump unless they describe a shipped behavior change that also changes code. Keep the visible version label derived from the bundle; never hardcode it in SwiftUI.
+Keep the visible version label derived from the bundle; never hardcode it in
+SwiftUI.
 
 ## Release publishing
 
