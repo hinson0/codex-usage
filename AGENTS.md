@@ -3,14 +3,14 @@
 ## Product invariants
 
 - Build a native macOS 13+ menu-bar app with no Dock icon or main window.
-- Display only the primary `codex` allowance. Keep auxiliary buckets such as `base_model_inference` and `gpt-reserve` out of the UI.
-- Show a reset count only when `availableCount > 0`. Every reset redemption requires visible confirmation and one idempotency key reused for an uncertain retry.
+- Display only the `codex` allowance bucket. Show its five-hour and longer-window percentages when both exist; when the five-hour window is absent, show the longer-window percentage and mark five-hour usage as unlimited. Keep auxiliary buckets such as `base_model_inference` and `gpt-reserve` out of the UI.
+- Treat reset credits as read-only. Show the count only when `availableCount > 0`; never redeem a reset or save reset-attempt history.
 - Automated verification is read-only against the live account; it never consumes a reset.
 - Appearance choices are Light and Dark. Apply appearance to the popover window only, leaving the menu-bar title under macOS contrast control.
 - Language choices are English and Simplified Chinese. Fresh installs and migrated legacy `system` values default to English.
 - Sparkle checks for updates automatically, but installation remains user-confirmed. Keep the interactive update action localized and independent from Codex usage state.
 - Only commit the Sparkle public key. Keep the private update-signing key in the `hinson0.codex-usage` login Keychain account and GitHub Actions secret `SPARKLE_PRIVATE_KEY`.
-- Use `docs/images/codex-usage-compact-no-system.png` as the visual target and keep `design-qa.md` current after visual changes.
+- Use `docs/images/codex-usage-dual-window.png` as the visual target and keep `design-qa.md` current after visual changes.
 
 ## Workflow
 
