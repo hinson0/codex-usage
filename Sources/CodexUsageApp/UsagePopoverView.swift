@@ -9,7 +9,8 @@ struct UsagePopoverView: View {
     private var presentation: MenuPresentation {
         MenuPresentation(
             snapshot: controller.snapshot,
-            lastReset: controller.lastReset,
+            lastReset: nil,
+            resetHistory: controller.resetHistory,
             isRefreshing: controller.isRefreshing,
             isRedeeming: controller.isRedeeming,
             error: controller.displayError,
@@ -136,9 +137,7 @@ struct UsagePopoverView: View {
                 .controlSize(.large)
                 .disabled(!presentation.isResetEnabled)
 
-                Text(presentation.lastResetText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                resetHistoryView
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 18)
@@ -146,15 +145,35 @@ struct UsagePopoverView: View {
             VStack(spacing: 10) {
                 Text(presentation.resetActionTitle)
                     .font(.system(size: 15, weight: .semibold))
-                Text(presentation.lastResetText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                resetHistoryView
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)
             .padding(.vertical, 24)
         }
+    }
+
+    private var resetHistoryView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if presentation.resetHistoryTexts.isEmpty {
+                Text(presentation.text(.noResetHistory))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text(presentation.text(.resetHistory))
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .textCase(.uppercase)
+
+                ForEach(Array(presentation.resetHistoryTexts.enumerated()), id: \.offset) { _, row in
+                    Text(row)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+            }
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var preferencesFooter: some View {

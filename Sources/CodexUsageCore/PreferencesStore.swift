@@ -44,12 +44,29 @@ public final class PreferencesStore: @unchecked Sendable {
         set { defaults.set(newValue.rawValue, forKey: languageKey) }
     }
 
+    public var resetHistory: [LastResetRecord] {
+        guard let data = defaults.data(forKey: lastResetKey) else { return [] }
+        if let records = try? JSONDecoder().decode([LastResetRecord].self, from: data) {
+            return Array(records.prefix(3))
+        }
+        if let legacyRecord = try? JSONDecoder().decode(LastResetRecord.self, from: data) {
+            return [legacyRecord]
+        }
+        return []
+    }
+
     public var lastReset: LastResetRecord? {
-        guard let data = defaults.data(forKey: lastResetKey) else { return nil }
-        return try? JSONDecoder().decode(LastResetRecord.self, from: data)
+        resetHistory.first
     }
 
     public func saveLastReset(_ record: LastResetRecord) throws {
-        defaults.set(try JSONEncoder().encode(record), forKey: lastResetKey)
+        try saveResetHistory([record] + resetHistory)
+    }
+
+    public func saveResetHistory(_ records: [LastResetRecord]) throws {
+        defaults.set(
+            try JSONEncoder().encode(Array(records.prefix(3))),
+            forKey: lastResetKey
+        )
     }
 }

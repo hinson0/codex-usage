@@ -58,6 +58,7 @@ public final class UsageController: ObservableObject {
     @Published public private(set) var isRedeeming = false
     @Published public private(set) var displayError: UsageDisplayError?
     @Published public private(set) var lastReset: LastResetRecord?
+    @Published public private(set) var resetHistory: [LastResetRecord]
     @Published public private(set) var appearance: AppAppearance
     @Published public private(set) var language: AppLanguage
 
@@ -79,7 +80,9 @@ public final class UsageController: ObservableObject {
         self.now = now
         appearance = preferences.appearance
         language = preferences.language
-        lastReset = preferences.lastReset
+        let storedResetHistory = preferences.resetHistory
+        resetHistory = storedResetHistory
+        lastReset = storedResetHistory.first
     }
 
     public var statusTitle: String {
@@ -175,9 +178,10 @@ public final class UsageController: ObservableObject {
     }
 
     private func persistLastReset(_ record: LastResetRecord) {
-        lastReset = record
+        resetHistory = Array(([record] + resetHistory).prefix(3))
+        lastReset = resetHistory.first
         do {
-            try preferences.saveLastReset(record)
+            try preferences.saveResetHistory(resetHistory)
         } catch {
             displayError = UsageDisplayError(error)
         }

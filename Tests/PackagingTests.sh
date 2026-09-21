@@ -16,8 +16,8 @@ executable="$app/Contents/MacOS/CodexUsage"
 [[ -x "$executable" ]]
 [[ "$(plutil -extract CFBundleIdentifier raw "$info")" == "local.codexusage.menubar" ]]
 [[ "$(plutil -extract CFBundleExecutable raw "$info")" == "CodexUsage" ]]
-[[ "$(plutil -extract CFBundleShortVersionString raw "$info")" == "0.2.0" ]]
-[[ "$(plutil -extract CFBundleVersion raw "$info")" == "2" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw "$info")" == "0.3.0" ]]
+[[ "$(plutil -extract CFBundleVersion raw "$info")" == "3" ]]
 [[ "$(plutil -extract LSUIElement raw "$info")" == "true" ]]
 [[ "$(plutil -extract LSMinimumSystemVersion raw "$info")" == "13.0" ]]
 codesign --verify --deep --strict "$app"

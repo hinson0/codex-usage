@@ -15,6 +15,7 @@ public struct MenuOption<Value: Equatable & Sendable>: Equatable, Sendable {
 public struct MenuPresentation: Sendable {
     public let snapshot: UsageSnapshot?
     public let lastReset: LastResetRecord?
+    public let resetHistory: [LastResetRecord]
     public let isRefreshing: Bool
     public let isRedeeming: Bool
     public let error: UsageDisplayError?
@@ -25,6 +26,7 @@ public struct MenuPresentation: Sendable {
     public init(
         snapshot: UsageSnapshot?,
         lastReset: LastResetRecord?,
+        resetHistory: [LastResetRecord] = [],
         isRefreshing: Bool,
         isRedeeming: Bool,
         error: UsageDisplayError?,
@@ -33,7 +35,11 @@ public struct MenuPresentation: Sendable {
         timeZone: TimeZone = .current
     ) {
         self.snapshot = snapshot
-        self.lastReset = lastReset
+        let resolvedHistory = resetHistory.isEmpty
+            ? lastReset.map { [$0] } ?? []
+            : Array(resetHistory.prefix(3))
+        self.lastReset = lastReset ?? resolvedHistory.first
+        self.resetHistory = resolvedHistory
         self.isRefreshing = isRefreshing
         self.isRedeeming = isRedeeming
         self.error = error
@@ -90,8 +96,20 @@ public struct MenuPresentation: Sendable {
 
     public var lastResetText: String {
         guard let lastReset else { return text(.noResetHistory) }
+        return LocalizationCatalog.format(
+            .lastReset,
+            language: language,
+            resetRecordText(lastReset)
+        )
+    }
+
+    public var resetHistoryTexts: [String] {
+        resetHistory.prefix(3).map(resetRecordText)
+    }
+
+    private func resetRecordText(_ record: LastResetRecord) -> String {
         let result: String
-        switch lastReset.result {
+        switch record.result {
         case .outcome(let outcome):
             result = LocalizationCatalog.resetOutcome(outcome, language: language)
         case .failure(let error):
@@ -102,11 +120,11 @@ public struct MenuPresentation: Sendable {
             )
         }
         let date = LocalizationCatalog.dateTime(
-            lastReset.attemptedAt,
+            record.attemptedAt,
             language: language,
             timeZone: timeZone
         )
-        return LocalizationCatalog.format(.lastReset, language: language, "\(date) · \(result)")
+        return "\(date) · \(result)"
     }
 
     public var errorText: String? {
