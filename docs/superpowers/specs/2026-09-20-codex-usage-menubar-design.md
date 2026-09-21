@@ -38,6 +38,7 @@ The app must also let the user consume an available reset, clearly report when n
 - Automatic refresh and recovery when the App Server process exits.
 - Local persistence for the most recent reset attempt, selected appearance, and selected language.
 - A polished bilingual README and public-repository-safe design assets.
+- An MIT license for permissive use, modification, redistribution, and commercial use.
 - Unit tests, an App Server read-only integration probe, release compilation, `.app` packaging, ad-hoc signing, and a launch smoke test.
 
 ### Not Included

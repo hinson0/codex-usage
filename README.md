@@ -7,6 +7,7 @@
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#requirements)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#build-and-run)
 [![Status: Local build verified](https://img.shields.io/badge/status-local%20build%20verified-22C55E)](#build-and-run)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22C55E)](LICENSE)
 
 [Chinese](README.zh-CN.md)
 
@@ -67,6 +68,10 @@ open dist/CodexUsage.app
 - Apple Silicon or Intel Mac supported by the final Swift build.
 - Codex CLI or the ChatGPT/Codex desktop app installed.
 - A ChatGPT account already signed in to Codex.
+
+### License
+
+Released under the [MIT License](LICENSE). You are free to use, modify, redistribute, and use it commercially, provided the copyright and permission notice remain with copies of the software.
 
 ### Documentation
 

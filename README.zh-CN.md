@@ -7,6 +7,7 @@
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#环境要求)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#构建与运行)
 [![状态：本机编译已验证](https://img.shields.io/badge/status-local%20build%20verified-22C55E)](#构建与运行)
+[![开源协议：MIT](https://img.shields.io/badge/license-MIT-22C55E)](LICENSE)
 
 [English README](README.md)
 
@@ -67,6 +68,10 @@ open dist/CodexUsage.app
 - 最终 Swift 构建支持的 Apple Silicon 或 Intel Mac。
 - 已安装 Codex CLI 或 ChatGPT/Codex 桌面 App。
 - ChatGPT 账户已经登录 Codex。
+
+### 开源协议
+
+本项目采用 [MIT License](LICENSE)。你可以自由使用、修改、再分发，也可以用于商业项目；再发布时保留版权声明和许可文本即可。
 
 ### 项目文档
 
