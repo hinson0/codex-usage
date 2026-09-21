@@ -36,7 +36,7 @@ Codex 73% (2 resets)  Two resets available
 - Reset count shown only when one or more resets are available.
 - Clear “no reset available” state when the count is zero.
 - Confirm-before-redeem reset action with idempotent retry protection.
-- Most recent reset time and outcome stored locally.
+- The three most recent reset attempts stored locally, newest first.
 - Automatic refresh on launch, every 60 seconds, and when the popover opens.
 - Light and Dark appearances.
 - English and Simplified Chinese languages, defaulting to English.
@@ -46,6 +46,7 @@ Codex 73% (2 resets)  Two resets available
 
 - Uses the official local Codex App Server and your existing Codex sign-in.
 - Does not read, copy, or persist ChatGPT access tokens.
+- Reset history contains only attempts made through this app; the App Server does not expose ChatGPT's web history.
 - Communicates with a local child process over pipes; it does not open a listening network port.
 - Never redeems a reset automatically.
 - Automated tests never consume a real reset.

@@ -13,7 +13,7 @@ Codex 73%(2 次)
 
 When no reset is available, the count and parentheses are omitted entirely. When one or more resets are available, the title appends `(<count> 次)`.
 
-The app must also let the user consume an available reset, clearly report when no reset exists, and retain the time and outcome of the most recent reset attempt.
+The app must also let the user consume an available reset, clearly report when no reset exists, and retain the time and outcome of the three most recent reset attempts.
 
 ## Confirmed Environment
 
@@ -31,12 +31,12 @@ The app must also let the user consume an available reset, clearly report when n
 - A menu-bar-only native app with no Dock icon.
 - Remaining percentage for the primary `codex` rate-limit bucket.
 - Available reset count in the status bar title.
-- A detailed menu with quota timing, reset availability, refresh state, last reset record, manual refresh, and quit.
+- A detailed menu with quota timing, reset availability, refresh state, up to three local reset records, manual refresh, and quit.
 - Confirmed consumption of one reset through Codex App Server.
 - A native appearance submenu with Light and Dark choices.
 - A language submenu with English and Simplified Chinese choices; English is the default.
 - Automatic refresh and recovery when the App Server process exits.
-- Local persistence for the most recent reset attempt, selected appearance, and selected language.
+- Local persistence for the three most recent reset attempts, selected appearance, and selected language.
 - A polished bilingual README and public-repository-safe design assets.
 - An MIT license for permissive use, modification, redistribution, and commercial use.
 - Unit tests, an App Server read-only integration probe, release compilation, `.app` packaging, ad-hoc signing, and a launch smoke test.
@@ -46,7 +46,7 @@ The app must also let the user consume an available reset, clearly report when n
 - Purchasing credits or resets.
 - Automatic reset consumption.
 - Login-item installation.
-- A Dock window, charts, notifications, or historical usage analytics.
+- A Dock window, charts, notifications, or server-backed historical usage analytics.
 - Storage or direct handling of ChatGPT access tokens.
 - Publishing, notarization, or a Developer ID signature.
 
@@ -77,7 +77,8 @@ The major components are:
    - Publishes main-thread state for the AppKit menu.
 
 4. **PreferencesStore**
-   - Stores one reset record in `UserDefaults`: attempted timestamp, outcome, and optional user-facing error text.
+   - Stores up to three reset records in `UserDefaults`, newest first: attempted timestamp, outcome, and optional user-facing error text.
+   - Migrates the legacy single-record payload without discarding it.
    - Stores the selected appearance as `light` or `dark`; the default is `light`. A legacy `system` value migrates to `light`.
    - Stores the selected language as `english` or `zhHans`; the default is `english`. A legacy `system` value migrates to `english`.
    - Never stores credentials, account identifiers, or reset credit identifiers.
@@ -155,7 +156,7 @@ The menu is ordered as follows:
 1. Primary Codex allowance, remaining percentage, and next automatic reset time.
 2. Current error, only when present.
 3. Reset action or disabled **“当前没有可用 reset”**.
-4. Last reset time and result, or **“尚未使用过 reset”**.
+4. Up to three locally recorded reset attempts, newest first, or **“尚未使用过 reset”**.
 5. A unified two-cell preferences footer: **“外观 · 当前值”** and **“语言 · 当前值”**, each opening its native menu with the active option checked.
 6. **“立即刷新”**.
 7. **“退出”**.
