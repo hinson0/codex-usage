@@ -40,3 +40,4 @@ swiftc \
 "$runner" "$@"
 
 "$repo_root/Tests/ReleaseScriptsTests.sh"
+"$repo_root/Tests/ReleaseArtifactsTests.sh"
