@@ -21,13 +21,6 @@ public enum UsageServiceError: Error, Equatable, Sendable, LocalizedError {
             return "Codex command-line tool not found"
         }
     }
-
-    var isRetryableTransportFailure: Bool {
-        switch self {
-        case .transport, .timeout: true
-        case .authenticationRequired, .binaryMissing, .protocolError, .unavailable: false
-        }
-    }
 }
 
 public enum UsageDisplayError: Codable, Equatable, Sendable {
@@ -48,47 +41,38 @@ public enum UsageDisplayError: Codable, Equatable, Sendable {
 
 public protocol UsageService: Sendable {
     func readRateLimits() async throws -> UsageSnapshot
-    func consumeReset(idempotencyKey: String, creditId: String?) async throws -> ResetOutcome
 }
 
 @MainActor
 public final class UsageController: ObservableObject {
     @Published public private(set) var snapshot: UsageSnapshot?
     @Published public private(set) var isRefreshing = false
-    @Published public private(set) var isRedeeming = false
     @Published public private(set) var displayError: UsageDisplayError?
-    @Published public private(set) var lastReset: LastResetRecord?
-    @Published public private(set) var resetHistory: [LastResetRecord]
     @Published public private(set) var appearance: AppAppearance
     @Published public private(set) var language: AppLanguage
 
     private let service: any UsageService
     private let preferences: PreferencesStore
-    private let uuid: @Sendable () -> UUID
-    private let now: @Sendable () -> Date
     private var operationInProgress = false
 
     public init(
         service: any UsageService,
-        preferences: PreferencesStore = PreferencesStore(),
-        uuid: @escaping @Sendable () -> UUID = UUID.init,
-        now: @escaping @Sendable () -> Date = Date.init
+        preferences: PreferencesStore = PreferencesStore()
     ) {
         self.service = service
         self.preferences = preferences
-        self.uuid = uuid
-        self.now = now
         appearance = preferences.appearance
         language = preferences.language
-        let storedResetHistory = preferences.resetHistory
-        resetHistory = storedResetHistory
-        lastReset = storedResetHistory.first
     }
 
     public var statusTitle: String {
-        UsageFormatting.statusTitle(
-            remainingPercent: UsageFormatting.remainingPercent(
-                usedPercent: snapshot?.primaryBucket?.primary?.usedPercent
+        let windows = UsageFormatting.windows(in: snapshot?.primaryBucket)
+        return UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: UsageFormatting.remainingPercent(
+                usedPercent: windows.fiveHour?.usedPercent
+            ),
+            longerRemainingPercent: UsageFormatting.remainingPercent(
+                usedPercent: windows.longer?.usedPercent
             ),
             availableResets: snapshot?.availableResetCount ?? 0,
             language: language
@@ -121,53 +105,6 @@ public final class UsageController: ObservableObject {
         await performRead()
     }
 
-    @discardableResult
-    public func redeemReset() async -> ResetOutcome? {
-        guard !operationInProgress, let snapshot, snapshot.availableResetCount > 0 else { return nil }
-        operationInProgress = true
-        isRedeeming = true
-        defer {
-            isRedeeming = false
-            operationInProgress = false
-        }
-
-        let idempotencyKey = uuid().uuidString
-        let creditId = snapshot.firstAvailableResetCreditId
-        do {
-            let outcome = try await consumeWithOneRetry(
-                idempotencyKey: idempotencyKey,
-                creditId: creditId
-            )
-            persistLastReset(LastResetRecord(attemptedAt: now(), result: .outcome(outcome)))
-            await performRead()
-            return outcome
-        } catch {
-            persistLastReset(LastResetRecord(
-                attemptedAt: now(),
-                result: .failure(UsageDisplayError(error))
-            ))
-            displayError = UsageDisplayError(error)
-            return nil
-        }
-    }
-
-    private func consumeWithOneRetry(
-        idempotencyKey: String,
-        creditId: String?
-    ) async throws -> ResetOutcome {
-        do {
-            return try await service.consumeReset(
-                idempotencyKey: idempotencyKey,
-                creditId: creditId
-            )
-        } catch let error as UsageServiceError where error.isRetryableTransportFailure {
-            return try await service.consumeReset(
-                idempotencyKey: idempotencyKey,
-                creditId: creditId
-            )
-        }
-    }
-
     private func performRead() async {
         do {
             snapshot = try await service.readRateLimits()
@@ -177,13 +114,4 @@ public final class UsageController: ObservableObject {
         }
     }
 
-    private func persistLastReset(_ record: LastResetRecord) {
-        resetHistory = Array(([record] + resetHistory).prefix(3))
-        lastReset = resetHistory.first
-        do {
-            try preferences.saveResetHistory(resetHistory)
-        } catch {
-            displayError = UsageDisplayError(error)
-        }
-    }
 }

@@ -5,15 +5,11 @@ import SwiftUI
 struct UsagePopoverView: View {
     @ObservedObject var controller: UsageController
     @ObservedObject var updater: UpdateCoordinator
-    @State private var showsResetConfirmation = false
 
     private var presentation: MenuPresentation {
         MenuPresentation(
             snapshot: controller.snapshot,
-            lastReset: nil,
-            resetHistory: controller.resetHistory,
             isRefreshing: controller.isRefreshing,
-            isRedeeming: controller.isRedeeming,
             error: controller.displayError,
             appearance: controller.appearance,
             language: controller.language,
@@ -24,9 +20,6 @@ struct UsagePopoverView: View {
     var body: some View {
         VStack(spacing: 0) {
             usageSection
-            Divider()
-                .padding(.horizontal, 20)
-            resetSection
             Divider()
                 .padding(.horizontal, 20)
             preferencesFooter
@@ -50,14 +43,6 @@ struct UsagePopoverView: View {
         )) { _ in
             controller.notifySystemLocaleChanged()
         }
-        .alert(presentation.text(.confirmResetTitle), isPresented: $showsResetConfirmation) {
-            Button(presentation.text(.cancel), role: .cancel) {}
-            Button(presentation.text(.confirm), role: .destructive) {
-                Task { await controller.redeemReset() }
-            }
-        } message: {
-            Text(presentation.text(.confirmResetMessage))
-        }
     }
 
     private var usageSection: some View {
@@ -67,9 +52,11 @@ struct UsagePopoverView: View {
                     Text(presentation.text(.codexRemaining))
                         .font(.system(size: 17, weight: .semibold))
                     Spacer(minLength: 16)
-                    Text("\(remaining)%")
+                    Text(presentation.usagePercentText)
                         .font(.system(size: 23, weight: .bold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
 
                 ProgressView(value: Double(remaining), total: 100)
@@ -78,10 +65,31 @@ struct UsagePopoverView: View {
                     .scaleEffect(x: 1, y: 1.4, anchor: .center)
                     .padding(.vertical, 2)
 
-                if let nextReset = presentation.nextResetText {
-                    Text(nextReset)
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(.secondary)
+                if presentation.nextResetText != nil || presentation.availableResetsText != nil {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        if let nextReset = presentation.nextResetText {
+                            Text(nextReset)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        Spacer(minLength: 8)
+                        if let resetCount = presentation.availableResetsText {
+                            Text(resetCount)
+                                .lineLimit(1)
+                        }
+                    }
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                }
+
+                if let fiveHourStatus = presentation.fiveHourStatusText {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(presentation.text(.fiveHourRemaining))
+                        Spacer(minLength: 8)
+                        Text(fiveHourStatus)
+                    }
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
                 }
             } else {
                 HStack(spacing: 10) {
@@ -110,72 +118,6 @@ struct UsagePopoverView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 18)
-    }
-
-    @ViewBuilder
-    private var resetSection: some View {
-        if presentation.isResetEnabled || controller.isRedeeming {
-            VStack(alignment: .leading, spacing: 12) {
-                if let count = presentation.availableResetsText {
-                    Text(count)
-                        .font(.system(size: 15, weight: .semibold))
-                }
-
-                Button {
-                    showsResetConfirmation = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        if controller.isRedeeming {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                        Text(presentation.resetActionTitle)
-                        Spacer()
-                    }
-                    .frame(minHeight: 30)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(!presentation.isResetEnabled)
-
-                resetHistoryView
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 18)
-        } else {
-            VStack(spacing: 10) {
-                Text(presentation.resetActionTitle)
-                    .font(.system(size: 15, weight: .semibold))
-                resetHistoryView
-            }
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 24)
-        }
-    }
-
-    private var resetHistoryView: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if presentation.resetHistoryTexts.isEmpty {
-                Text(presentation.text(.noResetHistory))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-                Text(presentation.text(.resetHistory))
-                    .font(.system(size: 11.5, weight: .semibold))
-                    .textCase(.uppercase)
-
-                ForEach(Array(presentation.resetHistoryTexts.enumerated()), id: \.offset) { _, row in
-                    Text(row)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
-            }
-        }
-        .font(.system(size: 13))
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var preferencesFooter: some View {
@@ -226,28 +168,44 @@ struct UsagePopoverView: View {
     }
 
     private var actionsSection: some View {
-        VStack(spacing: 2) {
-            Button {
-                Task { await controller.refresh() }
-            } label: {
-                actionRow(
-                    title: presentation.text(.refreshNow),
-                    symbol: "arrow.clockwise"
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(controller.isRefreshing || controller.isRedeeming)
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Button {
+                    Task { await controller.refresh() }
+                } label: {
+                    compactActionCell(
+                        title: presentation.text(.refreshNow),
+                        symbol: "arrow.clockwise"
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(controller.isRefreshing)
 
-            Button {
-                updater.checkForUpdates()
-            } label: {
-                actionRow(
-                    title: presentation.checkForUpdatesTitle,
-                    symbol: "arrow.down.circle"
-                )
+                Divider()
+                    .frame(height: 32)
+
+                Button {
+                    updater.checkForUpdates()
+                } label: {
+                    compactActionCell(
+                        title: presentation.checkForUpdatesTitle,
+                        symbol: "arrow.down.circle"
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!presentation.isUpdateEnabled)
             }
-            .buttonStyle(.plain)
-            .disabled(!presentation.isUpdateEnabled)
+            .frame(maxWidth: .infinity)
+            .padding(5)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(0.055))
+            )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+
+            Divider()
+                .padding(.horizontal, 20)
 
             Button {
                 NSApplication.shared.terminate(nil)
@@ -259,9 +217,9 @@ struct UsagePopoverView: View {
                 )
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
     }
 
     private func preferenceCell(symbol: String, summary: String) -> some View {
@@ -319,6 +277,23 @@ struct UsagePopoverView: View {
         .contentShape(Rectangle())
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
+    }
+
+    private func compactActionCell(title: String, symbol: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: 13))
+                .frame(width: 16)
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.system(size: 12.5, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .foregroundStyle(.primary)
+        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, minHeight: 36)
+        .padding(.horizontal, 8)
     }
 
 }

@@ -14,10 +14,7 @@ public struct MenuOption<Value: Equatable & Sendable>: Equatable, Sendable {
 
 public struct MenuPresentation: Sendable {
     public let snapshot: UsageSnapshot?
-    public let lastReset: LastResetRecord?
-    public let resetHistory: [LastResetRecord]
     public let isRefreshing: Bool
-    public let isRedeeming: Bool
     public let error: UsageDisplayError?
     public let appearance: AppAppearance
     public let language: AppLanguage
@@ -26,10 +23,7 @@ public struct MenuPresentation: Sendable {
 
     public init(
         snapshot: UsageSnapshot?,
-        lastReset: LastResetRecord?,
-        resetHistory: [LastResetRecord] = [],
         isRefreshing: Bool,
-        isRedeeming: Bool,
         error: UsageDisplayError?,
         appearance: AppAppearance,
         language: AppLanguage,
@@ -37,13 +31,7 @@ public struct MenuPresentation: Sendable {
         canCheckForUpdates: Bool = false
     ) {
         self.snapshot = snapshot
-        let resolvedHistory = resetHistory.isEmpty
-            ? lastReset.map { [$0] } ?? []
-            : Array(resetHistory.prefix(3))
-        self.lastReset = lastReset ?? resolvedHistory.first
-        self.resetHistory = resolvedHistory
         self.isRefreshing = isRefreshing
-        self.isRedeeming = isRedeeming
         self.error = error
         self.appearance = appearance
         self.language = language
@@ -52,28 +40,38 @@ public struct MenuPresentation: Sendable {
     }
 
     public var remainingPercent: Int? {
-        UsageFormatting.remainingPercent(usedPercent: snapshot?.primaryBucket?.primary?.usedPercent)
+        let progressWindow = usageWindows.longer ?? usageWindows.fiveHour
+        return UsageFormatting.remainingPercent(usedPercent: progressWindow?.usedPercent)
+    }
+
+    public var fiveHourRemainingPercent: Int? {
+        UsageFormatting.remainingPercent(usedPercent: usageWindows.fiveHour?.usedPercent)
+    }
+
+    public var usagePercentText: String {
+        let longerRemainingPercent = UsageFormatting.remainingPercent(
+            usedPercent: usageWindows.longer?.usedPercent
+        )
+        let percentages = [fiveHourRemainingPercent, longerRemainingPercent]
+            .compactMap { $0 }
+            .map { "\($0)%" }
+        return percentages.isEmpty ? "--%" : percentages.joined(separator: " - ")
+    }
+
+    public var fiveHourStatusText: String? {
+        guard snapshot != nil, usageWindows.fiveHour == nil else { return nil }
+        return text(.unlimited)
     }
 
     public var statusTitle: String {
         UsageFormatting.statusTitle(
-            remainingPercent: remainingPercent,
+            fiveHourRemainingPercent: fiveHourRemainingPercent,
+            longerRemainingPercent: UsageFormatting.remainingPercent(
+                usedPercent: usageWindows.longer?.usedPercent
+            ),
             availableResets: snapshot?.availableResetCount ?? 0,
             language: language
         )
-    }
-
-    public var resetActionTitle: String {
-        if isRedeeming {
-            return text(.resetInProgress)
-        }
-        return snapshot?.availableResetCount ?? 0 > 0
-            ? text(.useOneReset)
-            : text(.noResetsAvailable)
-    }
-
-    public var isResetEnabled: Bool {
-        (snapshot?.availableResetCount ?? 0) > 0 && !isRedeeming
     }
 
     public var checkForUpdatesTitle: String {
@@ -86,11 +84,14 @@ public struct MenuPresentation: Sendable {
 
     public var availableResetsText: String? {
         guard let count = snapshot?.availableResetCount, count > 0 else { return nil }
-        return LocalizationCatalog.format(.availableResets, language: language, count)
+        let key: LocalizationKey = count == 1 ? .availableReset : .availableResets
+        return LocalizationCatalog.format(key, language: language, count)
     }
 
     public var nextResetText: String? {
-        guard let timestamp = snapshot?.primaryBucket?.primary?.resetsAt else { return nil }
+        guard let timestamp = (usageWindows.longer ?? usageWindows.fiveHour)?.resetsAt else {
+            return nil
+        }
         let date = LocalizationCatalog.dateTime(
             Date(timeIntervalSince1970: TimeInterval(timestamp)),
             language: language,
@@ -103,39 +104,6 @@ public struct MenuPresentation: Sendable {
         guard let refreshedAt = snapshot?.refreshedAt else { return nil }
         let date = LocalizationCatalog.dateTime(refreshedAt, language: language, timeZone: timeZone)
         return LocalizationCatalog.format(.lastRefresh, language: language, date)
-    }
-
-    public var lastResetText: String {
-        guard let lastReset else { return text(.noResetHistory) }
-        return LocalizationCatalog.format(
-            .lastReset,
-            language: language,
-            resetRecordText(lastReset)
-        )
-    }
-
-    public var resetHistoryTexts: [String] {
-        resetHistory.prefix(3).map(resetRecordText)
-    }
-
-    private func resetRecordText(_ record: LastResetRecord) -> String {
-        let result: String
-        switch record.result {
-        case .outcome(let outcome):
-            result = LocalizationCatalog.resetOutcome(outcome, language: language)
-        case .failure(let error):
-            result = LocalizationCatalog.format(
-                .resetFailed,
-                language: language,
-                localizedError(error)
-            )
-        }
-        let date = LocalizationCatalog.dateTime(
-            record.attemptedAt,
-            language: language,
-            timeZone: timeZone
-        )
-        return "\(date) · \(result)"
     }
 
     public var errorText: String? {
@@ -189,5 +157,9 @@ public struct MenuPresentation: Sendable {
         case .timeout: text(.requestTimedOut)
         case .message(let message): LocalizationCatalog.format(.errorPrefix, language: language, message)
         }
+    }
+
+    private var usageWindows: UsageWindowSelection {
+        UsageFormatting.windows(in: snapshot?.primaryBucket)
     }
 }

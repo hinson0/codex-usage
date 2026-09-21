@@ -31,16 +31,6 @@ public actor CodexAppServerClient: UsageService {
         return UsageSnapshot(response: result, refreshedAt: now())
     }
 
-    public func consumeReset(idempotencyKey: String, creditId: String?) async throws -> ResetOutcome {
-        var params: [String: Any] = ["idempotencyKey": idempotencyKey]
-        if let creditId { params["creditId"] = creditId }
-        let result: ConsumeResetResponse = try await request(
-            method: "account/rateLimitResetCredit/consume",
-            params: params
-        )
-        return result.outcome
-    }
-
     private func request<Response: Decodable>(
         method: String,
         params: [String: Any]?

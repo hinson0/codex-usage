@@ -141,25 +141,6 @@ struct AppServerClientTests {
         #expect(snapshot.primaryBucket?.primary?.usedPercent == 40)
     }
 
-    @Test
-    func resetRequestContainsIdempotencyKeyAndOptionalCreditId() async throws {
-        let transport = ScriptedTransport(events: [
-            .line(response(id: 0, result: [:])),
-            .line(response(id: 1, result: ["outcome": "alreadyRedeemed"])),
-        ])
-        let client = makeClient(transports: [transport])
-
-        let outcome = try await client.consumeReset(
-            idempotencyKey: "logical-attempt-1",
-            creditId: "credit-7"
-        )
-        let messages = await transport.sentMessages()
-        let params = messages[2].params
-
-        #expect(outcome == .alreadyRedeemed)
-        #expect(params["idempotencyKey"] == "logical-attempt-1")
-        #expect(params["creditId"] == "credit-7")
-    }
 }
 
 @Suite
