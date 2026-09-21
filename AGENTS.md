@@ -8,6 +8,8 @@
 - Automated verification is read-only against the live account; it never consumes a reset.
 - Appearance choices are Light and Dark. Apply appearance to the popover window only, leaving the menu-bar title under macOS contrast control.
 - Language choices are English and Simplified Chinese. Fresh installs and migrated legacy `system` values default to English.
+- Sparkle checks for updates automatically, but installation remains user-confirmed. Keep the interactive update action localized and independent from Codex usage state.
+- Only commit the Sparkle public key. Keep the private update-signing key in the `hinson0.codex-usage` login Keychain account and GitHub Actions secret `SPARKLE_PRIVATE_KEY`.
 - Use `docs/images/codex-usage-compact-no-system.png` as the visual target and keep `design-qa.md` current after visual changes.
 
 ## Workflow
@@ -31,6 +33,16 @@
    scripts/smoke-test.sh
    ```
 
+7. For release-pipeline work, also run:
+
+   ```bash
+   Tests/ReleaseWorkflowTests.sh
+   Tests/ReleaseArtifactsTests.sh
+   ```
+
+Local and integration tests may build and sign artifacts, but they never create
+tags, upload assets, publish releases, or consume a reset.
+
 The installed Command Line Tools SwiftPM runner does not execute registered tests correctly. Use `scripts/test.sh`, which links the same test objects to Apple's Testing entry point.
 
 ## Versioning
@@ -48,6 +60,14 @@ Examples:
 - `0.3.4` → `1.0.0` for a breaking release.
 
 Documentation-only edits do not require a version bump unless they describe a shipped behavior change that also changes code. Keep the visible version label derived from the bundle; never hardcode it in SwiftUI.
+
+## Release publishing
+
+- A version change on `main` runs `.github/workflows/release.yml`.
+- The workflow stays validation-only unless `RELEASES_ENABLED` is `true` or a trusted manual dispatch sets `publish=true`.
+- A published `vX.Y.Z` tag and its four assets are immutable. Never move the tag, overwrite an asset, or use `--clobber`.
+- Releases contain a DMG for manual installation, a ZIP for Sparkle, `SHA256SUMS`, and `appcast.xml`.
+- Use Sparkle's official tools for EdDSA signing. Never print, log, commit, or pass the private key as a command-line argument.
 
 ## Architecture pointers
 

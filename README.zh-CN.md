@@ -11,6 +11,8 @@
 
 [English README](README.md)
 
+[**下载最新版本**](https://github.com/hinson0/codex-usage/releases/latest)
+
 <img src="docs/images/codex-usage-compact-no-system.png" alt="Codex Usage 紧凑型浅色与深色状态栏设计" width="100%">
 
 <sub>已选定的紧凑型浅色与深色设计。</sub>
@@ -40,7 +42,19 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - 启动时、每 60 秒以及打开弹窗时自动刷新。
 - 支持浅色和深色外观。
 - 支持 English 和简体中文界面，默认使用 English。
+- 提供双语“检查更新…”入口，并通过 Sparkle 定时检查新版本。
 - 不显示 Dock 图标，也不提供多余的主窗口。
+
+### 下载与更新
+
+每个 GitHub Release 都提供两种安装包：
+
+- `CodexUsage-vX.Y.Z-macOS.dmg` 给人手动安装，打开后拖进“应用程序”即可。
+- `CodexUsage-vX.Y.Z-macOS.zip` 是 Sparkle 在 App 内更新时使用的同一份签名归档。
+
+Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.3.0`
+是首个支持 Sparkle 的版本，需要先手动安装；后续版本可通过“检查更新…”或后台
+定时检查发现，并且不会静默强制安装。
 
 ### 隐私与安全
 
@@ -60,7 +74,9 @@ scripts/build-app.sh
 open dist/CodexUsage.app
 ```
 
-`scripts/build-app.sh` 会在 `dist/CodexUsage.app` 生成经过 ad-hoc 签名的本机版本。若要分发给其他 Mac，还需要 Developer ID 签名和公证。
+`scripts/build-app.sh` 会在 `dist/CodexUsage.app` 生成经过 ad-hoc 签名的本机版本。
+公开 DMG 目前同样是 ad-hoc 签名，因此首次启动仍可能遇到 Gatekeeper 提示。DMG
+只是安装得更体面；要正规消除提示，仍需 Developer ID 签名和 Apple 公证。
 
 ### 环境要求
 

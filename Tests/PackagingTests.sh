@@ -7,30 +7,43 @@ cd "$repo_root"
 
 scripts/build-app.sh >/dev/null
 
+fail() {
+  echo "$1" >&2
+  exit 1
+}
+
+assert_equal() {
+  [[ "$1" == "$2" ]] || fail "$3: expected '$2', got '$1'"
+}
+
 app="$repo_root/dist/CodexUsage.app"
 info="$app/Contents/Info.plist"
 executable="$app/Contents/MacOS/CodexUsage"
 framework="$app/Contents/Frameworks/Sparkle.framework"
 
-[[ -d "$app" ]]
-[[ -f "$info" ]]
-[[ -x "$executable" ]]
-[[ -d "$framework" ]]
-[[ "$(plutil -extract CFBundleIdentifier raw "$info")" == "local.codexusage.menubar" ]]
-[[ "$(plutil -extract CFBundleExecutable raw "$info")" == "CodexUsage" ]]
-[[ "$(plutil -extract CFBundleShortVersionString raw "$info")" == "0.2.0" ]]
-[[ "$(plutil -extract CFBundleVersion raw "$info")" == "2" ]]
-[[ "$(plutil -extract LSUIElement raw "$info")" == "true" ]]
-[[ "$(plutil -extract LSMinimumSystemVersion raw "$info")" == "13.0" ]]
-[[ -n "$(plutil -extract SUFeedURL raw "$info")" ]]
+[[ -d "$app" ]] || fail "Application bundle is missing"
+[[ -f "$info" ]] || fail "Application Info.plist is missing"
+[[ -x "$executable" ]] || fail "Application executable is missing"
+[[ -d "$framework" ]] || fail "Embedded Sparkle framework is missing"
+assert_equal "$(plutil -extract CFBundleIdentifier raw "$info")" "local.codexusage.menubar" "Bundle identifier"
+assert_equal "$(plutil -extract CFBundleExecutable raw "$info")" "CodexUsage" "Bundle executable"
+assert_equal "$(plutil -extract CFBundleShortVersionString raw "$info")" "0.3.0" "Short version"
+assert_equal "$(plutil -extract CFBundleVersion raw "$info")" "3" "Build number"
+assert_equal "$(plutil -extract LSUIElement raw "$info")" "true" "Menu-bar-only flag"
+assert_equal "$(plutil -extract LSMinimumSystemVersion raw "$info")" "13.0" "Minimum macOS version"
+[[ -n "$(plutil -extract SUFeedURL raw "$info")" ]] || fail "Sparkle feed URL is empty"
 public_key="$(plutil -extract SUPublicEDKey raw "$info")"
-[[ "$(printf '%s' "$public_key" | base64 -D | wc -c | tr -d ' ')" == "32" ]]
-[[ "$(plutil -extract SUEnableAutomaticChecks raw "$info")" == "true" ]]
-[[ "$(plutil -extract SUAutomaticallyUpdate raw "$info")" == "false" ]]
-[[ "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$info")" == "true" ]]
-otool -L "$executable" | grep -Fq '@rpath/Sparkle.framework/'
-otool -l "$executable" | grep -Fq '@loader_path/../Frameworks'
-codesign --verify --deep --strict "$framework"
-codesign --verify --deep --strict "$app"
+assert_equal "$(printf '%s' "$public_key" | base64 -D | wc -c | tr -d ' ')" "32" "Sparkle public-key byte count"
+assert_equal "$(plutil -extract SUEnableAutomaticChecks raw "$info")" "true" "Automatic update checks"
+assert_equal "$(plutil -extract SUAutomaticallyUpdate raw "$info")" "false" "Unattended update installation"
+assert_equal "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$info")" "true" "Pre-extraction verification"
+otool -L "$executable" | grep -Fq '@rpath/Sparkle.framework/' \
+  || fail "Executable does not link Sparkle through @rpath"
+otool -l "$executable" | grep -Fq '@loader_path/../Frameworks' \
+  || fail "Executable is missing the embedded-framework rpath"
+codesign --verify --deep --strict "$framework" \
+  || fail "Embedded Sparkle signature is invalid"
+codesign --verify --deep --strict "$app" \
+  || fail "Application signature is invalid"
 
 echo "Packaging checks passed: $app"
