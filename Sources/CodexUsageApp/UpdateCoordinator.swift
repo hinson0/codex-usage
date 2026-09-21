@@ -2,19 +2,20 @@ import Foundation
 import Sparkle
 
 @MainActor
-final class UpdateCoordinator: ObservableObject {
+final class UpdateCoordinator: NSObject, ObservableObject, SPUUpdaterDelegate {
+    @Published private(set) var hasAvailableUpdate = false
     @Published private(set) var canCheckForUpdates = false
 
-    private let controller: SPUStandardUpdaterController
+    private lazy var controller = SPUStandardUpdaterController(
+        startingUpdater: false,
+        updaterDelegate: self,
+        userDriverDelegate: nil
+    )
     private var canCheckObservation: NSKeyValueObservation?
     private var hasStarted = false
 
-    init() {
-        controller = SPUStandardUpdaterController(
-            startingUpdater: false,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+    override init() {
+        super.init()
         canCheckObservation = controller.updater.observe(
             \.canCheckForUpdates,
             options: [.initial, .new]
@@ -24,6 +25,14 @@ final class UpdateCoordinator: ObservableObject {
                 self?.canCheckForUpdates = available
             }
         }
+    }
+
+    func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        hasAvailableUpdate = true
+    }
+
+    func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        hasAvailableUpdate = false
     }
 
     func start() {

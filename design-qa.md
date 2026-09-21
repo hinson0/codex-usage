@@ -32,7 +32,7 @@ The normalized side-by-side image compares the complete app-owned content at the
 
 - No actionable P0, P1, or P2 findings remain.
 - P3: the generated mock uses slightly larger display typography than native macOS controls. Keeping native metrics avoids cramped labels and preserves platform consistency.
-- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.0.2 (11)`, and the production scene remains a single `MenuBarExtra`.
+- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.1.0 (12)`, and the production scene remains a single `MenuBarExtra`.
 - The live account has no five-hour window, so the finite `x% - y%` popover state was not visually captured. Unit tests cover both window orders, missing percentages, duplicate 300-minute windows, and longer-window progress/reset selection.
 
 ## Comparison History
@@ -54,3 +54,9 @@ The normalized side-by-side image compares the complete app-owned content at the
 ## Final Result
 
 final result: passed
+
+## Update Availability Label (2026-09-21)
+
+- The existing update action displays `有新版本` / `Update Available` after Sparkle reports a valid update; otherwise it displays the existing localized check action.
+- A successful check with no valid update clears the indicator. Transient check failures retain the last known result. The label is independent of usage loading/errors and button enablement.
+- Layout, icon, and installation confirmation behavior are unchanged. Automated presentation tests cover both languages and enabled/disabled states. This text-only change has not received a new screenshot capture; the images above document the previous default state.

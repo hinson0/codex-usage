@@ -209,6 +209,27 @@ struct MenuPresentationTests {
     }
 
     @Test
+    func availableUpdateChangesTitleIndependentlyOfUsageAndCheckAvailability() {
+        for language in [AppLanguage.english, .zhHans] {
+            for canCheck in [false, true] {
+                let presentation = MenuPresentation(
+                    snapshot: nil,
+                    isRefreshing: true,
+                    error: .authenticationRequired,
+                    appearance: .dark,
+                    language: language,
+                    canCheckForUpdates: canCheck,
+                    hasAvailableUpdate: true
+                )
+                #expect(presentation.checkForUpdatesTitle == (
+                    language == .zhHans ? "有新版本" : "Update Available"
+                ))
+                #expect(presentation.isUpdateEnabled == canCheck)
+            }
+        }
+    }
+
+    @Test
     func updateActionRelocalizesAndFollowsInjectedAvailability() {
         let english = MenuPresentation(
             snapshot: nil,

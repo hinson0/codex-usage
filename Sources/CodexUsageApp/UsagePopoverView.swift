@@ -13,7 +13,8 @@ struct UsagePopoverView: View {
             error: controller.displayError,
             appearance: controller.appearance,
             language: controller.language,
-            canCheckForUpdates: updater.canCheckForUpdates
+            canCheckForUpdates: updater.canCheckForUpdates,
+            hasAvailableUpdate: updater.hasAvailableUpdate
         )
     }
 
