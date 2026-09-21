@@ -202,8 +202,10 @@ struct MenuPresentationTests {
     func appearanceSelectionIsScopedToPopoverInsteadOfWholeApplication() {
         #expect(AppAppearance.light.nativeAppearancePolicy.applicationName == nil)
         #expect(AppAppearance.light.nativeAppearancePolicy.popoverName == "NSAppearanceNameAqua")
+        #expect(AppAppearance.light.nativeAppearancePolicy.backgroundStyle == .opaqueWhite)
         #expect(AppAppearance.dark.nativeAppearancePolicy.applicationName == nil)
         #expect(AppAppearance.dark.nativeAppearancePolicy.popoverName == "NSAppearanceNameDarkAqua")
+        #expect(AppAppearance.dark.nativeAppearancePolicy.backgroundStyle == .opaqueWindow)
     }
 
     @Test

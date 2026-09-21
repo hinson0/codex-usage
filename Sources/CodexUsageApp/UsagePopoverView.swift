@@ -28,6 +28,7 @@ struct UsagePopoverView: View {
             actionsSection
         }
         .frame(width: 348)
+        .background(popoverBackgroundColor.ignoresSafeArea())
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .background(
             PopoverAppearanceBridge(
@@ -42,6 +43,15 @@ struct UsagePopoverView: View {
             for: NSLocale.currentLocaleDidChangeNotification
         )) { _ in
             controller.notifySystemLocaleChanged()
+        }
+    }
+
+    private var popoverBackgroundColor: Color {
+        switch controller.appearance.nativeAppearancePolicy.backgroundStyle {
+        case .opaqueWhite:
+            .white
+        case .opaqueWindow:
+            Color(nsColor: .windowBackgroundColor)
         }
     }
 
