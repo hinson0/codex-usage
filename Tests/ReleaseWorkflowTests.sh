@@ -44,6 +44,7 @@ steps.each do |step|
 end
 checkout = steps.find { |step| step["uses"]&.start_with?("actions/checkout@") }
 raise "checkout missing full history" unless checkout&.dig("with", "fetch-depth") == 0
+raise "checkout action is not the reviewed release" unless checkout.fetch("uses") == "actions/checkout@v7.0.1"
 
 secret_steps = steps.select { |step| step.fetch("env", {}).key?("SPARKLE_PRIVATE_KEY") }
 raise "Sparkle secret must be scoped to one step" unless secret_steps.length == 1

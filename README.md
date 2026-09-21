@@ -55,7 +55,7 @@ Each GitHub Release provides two application packages:
   in-app updates.
 
 The Release also includes `SHA256SUMS` and the signed `appcast.xml` update feed.
-Version `0.4.1` is the first Sparkle-enabled build, so it must be installed
+Version `0.4.2` is the first Sparkle-enabled build, so it must be installed
 manually; later releases can be found from “Check for Updates…” and by scheduled
 background checks. Updates are never installed silently.
 

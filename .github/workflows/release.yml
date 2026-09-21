@@ -27,7 +27,7 @@ jobs:
       SHOULD_PUBLISH: ${{ (github.event_name == 'push' && vars.RELEASES_ENABLED == 'true') || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
     steps:
       - name: Check out the verified commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
