@@ -10,16 +10,27 @@ scripts/build-app.sh >/dev/null
 app="$repo_root/dist/CodexUsage.app"
 info="$app/Contents/Info.plist"
 executable="$app/Contents/MacOS/CodexUsage"
+framework="$app/Contents/Frameworks/Sparkle.framework"
 
 [[ -d "$app" ]]
 [[ -f "$info" ]]
 [[ -x "$executable" ]]
+[[ -d "$framework" ]]
 [[ "$(plutil -extract CFBundleIdentifier raw "$info")" == "local.codexusage.menubar" ]]
 [[ "$(plutil -extract CFBundleExecutable raw "$info")" == "CodexUsage" ]]
 [[ "$(plutil -extract CFBundleShortVersionString raw "$info")" == "0.2.0" ]]
 [[ "$(plutil -extract CFBundleVersion raw "$info")" == "2" ]]
 [[ "$(plutil -extract LSUIElement raw "$info")" == "true" ]]
 [[ "$(plutil -extract LSMinimumSystemVersion raw "$info")" == "13.0" ]]
+[[ -n "$(plutil -extract SUFeedURL raw "$info")" ]]
+public_key="$(plutil -extract SUPublicEDKey raw "$info")"
+[[ "$(printf '%s' "$public_key" | base64 -D | wc -c | tr -d ' ')" == "32" ]]
+[[ "$(plutil -extract SUEnableAutomaticChecks raw "$info")" == "true" ]]
+[[ "$(plutil -extract SUAutomaticallyUpdate raw "$info")" == "false" ]]
+[[ "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$info")" == "true" ]]
+otool -L "$executable" | grep -Fq '@rpath/Sparkle.framework/'
+otool -l "$executable" | grep -Fq '@loader_path/../Frameworks'
+codesign --verify --deep --strict "$framework"
 codesign --verify --deep --strict "$app"
 
 echo "Packaging checks passed: $app"

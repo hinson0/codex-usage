@@ -28,5 +28,15 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUFeedURL</key>
+    <string>https://github.com/hinson0/codex-usage/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>ewvCzKGyofO3gLVxgRr11p8lQnWdjYwRmLLXW0Xqa4I=</string>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
 </dict>
 </plist>

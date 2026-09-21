@@ -34,7 +34,13 @@ let package = Package(
                 "CodexUsageCore",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Sources/CodexUsageApp"
+            path: "Sources/CodexUsageApp",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@loader_path/../Frameworks",
+                ]),
+            ]
         ),
         .testTarget(
             name: "CodexUsageCoreTests",
