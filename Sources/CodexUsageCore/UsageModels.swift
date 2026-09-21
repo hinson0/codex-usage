@@ -16,6 +16,14 @@ public enum AppAppearance: String, Codable, CaseIterable, Sendable {
     case system
     case light
     case dark
+
+    public var nativeAppearanceName: String? {
+        switch self {
+        case .system: nil
+        case .light: "NSAppearanceNameAqua"
+        case .dark: "NSAppearanceNameDarkAqua"
+        }
+    }
 }
 
 public struct RateLimitWindow: Codable, Equatable, Sendable {

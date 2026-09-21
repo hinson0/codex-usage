@@ -129,6 +129,20 @@ public struct MenuPresentation: Sendable {
         ]
     }
 
+    public var displayedAdditionalBuckets: [RateLimitBucket] {
+        []
+    }
+
+    public var appearanceSummary: String {
+        let selected = appearanceOptions.first(where: \.isSelected)?.title ?? text(.followSystem)
+        return "\(text(.appearance)) · \(selected)"
+    }
+
+    public var languageSummary: String {
+        let selected = languageOptions.first(where: \.isSelected)?.title ?? text(.followSystem)
+        return "\(text(.language)) · \(selected)"
+    }
+
     public func text(_ key: LocalizationKey) -> String {
         LocalizationCatalog.string(key, language: language)
     }

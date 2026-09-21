@@ -22,14 +22,23 @@ struct UsagePopoverView: View {
         VStack(spacing: 0) {
             usageSection
             Divider()
+                .padding(.horizontal, 20)
             resetSection
             Divider()
-            settingsSection
+                .padding(.horizontal, 20)
+            preferencesFooter
+            Divider()
+                .padding(.horizontal, 20)
+            actionsSection
         }
-        .frame(width: 340)
+        .frame(width: 432)
         .preferredColorScheme(controller.appearance.colorScheme)
         .onAppear {
+            applyAppearance()
             Task { await controller.refresh() }
+        }
+        .onChange(of: controller.appearance) { _ in
+            applyAppearance()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: NSLocale.currentLocaleDidChangeNotification
@@ -47,156 +56,159 @@ struct UsagePopoverView: View {
     }
 
     private var usageSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             if let remaining = presentation.remainingPercent {
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(presentation.text(.codexRemaining))
-                        .font(.headline)
-                    Spacer()
+                        .font(.system(size: 20, weight: .semibold))
+                    Spacer(minLength: 16)
                     Text("\(remaining)%")
-                        .font(.title2.weight(.semibold))
+                        .font(.system(size: 26, weight: .bold))
                         .monospacedDigit()
                 }
+
                 ProgressView(value: Double(remaining), total: 100)
                     .progressViewStyle(.linear)
                     .tint(.blue)
+                    .scaleEffect(x: 1, y: 1.65, anchor: .center)
+                    .padding(.vertical, 2)
+
                 if let nextReset = presentation.nextResetText {
                     Text(nextReset)
-                        .font(.caption)
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
                 }
             } else {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     ProgressView()
                         .controlSize(.small)
                     Text(presentation.text(.loading))
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-            }
-
-            if let snapshot = controller.snapshot, !snapshot.additionalBuckets.isEmpty {
-                Text(presentation.text(.additionalLimits))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                ForEach(snapshot.additionalBuckets, id: \.limitId) { bucket in
-                    HStack {
-                        Text(bucket.limitName ?? bucket.limitId)
-                            .lineLimit(1)
-                        Spacer()
-                        Text(bucketRemaining(bucket))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(.caption)
-                }
+                .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
             }
 
             if let error = presentation.errorText {
                 Text(error)
-                    .font(.caption)
+                    .font(.footnote)
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
-            } else if let refreshed = presentation.lastRefreshText {
-                Text(refreshed)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+            }
+
+            if !presentation.displayedAdditionalBuckets.isEmpty {
+                ForEach(presentation.displayedAdditionalBuckets, id: \.limitId) { _ in
+                    EmptyView()
+                }
             }
         }
-        .padding(16)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 22)
     }
 
+    @ViewBuilder
     private var resetSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let count = presentation.availableResetsText {
-                Text(count)
-                    .font(.subheadline.weight(.medium))
-            }
+        if presentation.isResetEnabled || controller.isRedeeming {
+            VStack(alignment: .leading, spacing: 12) {
+                if let count = presentation.availableResetsText {
+                    Text(count)
+                        .font(.system(size: 17, weight: .semibold))
+                }
 
-            if presentation.isResetEnabled {
                 Button {
                     showsResetConfirmation = true
                 } label: {
                     HStack {
                         Spacer()
+                        if controller.isRedeeming {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
                         Text(presentation.resetActionTitle)
                         Spacer()
                     }
+                    .frame(minHeight: 30)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-            } else {
-                HStack(spacing: 8) {
-                    if controller.isRedeeming {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                    Text(presentation.resetActionTitle)
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            }
+                .disabled(!presentation.isResetEnabled)
 
-            Text(presentation.lastResetText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(presentation.lastResetText)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 22)
+        } else {
+            VStack(spacing: 10) {
+                Text(presentation.resetActionTitle)
+                    .font(.system(size: 17, weight: .semibold))
+                Text(presentation.lastResetText)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 34)
         }
-        .padding(16)
     }
 
-    private var settingsSection: some View {
-        VStack(spacing: 0) {
+    private var preferencesFooter: some View {
+        HStack(spacing: 0) {
             Menu {
                 ForEach(presentation.appearanceOptions, id: \.value) { option in
-                    Button {
+                    selectionButton(option) {
                         controller.setAppearance(option.value)
-                    } label: {
-                        if option.isSelected {
-                            Label(option.title, systemImage: "checkmark")
-                        } else {
-                            Text(option.title)
-                        }
                     }
                 }
             } label: {
-                settingsRow(
-                    title: presentation.text(.appearance),
-                    value: selectedAppearanceTitle,
-                    symbol: "circle.lefthalf.filled"
+                preferenceCell(
+                    symbol: "circle.lefthalf.filled",
+                    summary: presentation.appearanceSummary
                 )
             }
             .menuStyle(.borderlessButton)
+            .frame(maxWidth: .infinity)
+            .layoutPriority(1)
+
+            Divider()
+                .frame(height: 32)
 
             Menu {
                 ForEach(presentation.languageOptions, id: \.value) { option in
-                    Button {
+                    selectionButton(option) {
                         controller.setLanguage(option.value)
-                    } label: {
-                        if option.isSelected {
-                            Label(option.title, systemImage: "checkmark")
-                        } else {
-                            Text(option.title)
-                        }
                     }
                 }
             } label: {
-                settingsRow(
-                    title: presentation.text(.language),
-                    value: selectedLanguageTitle,
-                    symbol: "globe"
+                preferenceCell(
+                    symbol: "globe",
+                    summary: presentation.languageSummary
                 )
             }
             .menuStyle(.borderlessButton)
+            .frame(maxWidth: .infinity)
+            .layoutPriority(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(6)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.055))
+        )
+        .padding(.horizontal, 14)
+        .padding(.vertical, 16)
+    }
 
-            Divider()
-                .padding(.vertical, 4)
-
+    private var actionsSection: some View {
+        VStack(spacing: 2) {
             Button {
                 Task { await controller.refresh() }
             } label: {
-                settingsRow(
+                actionRow(
                     title: presentation.text(.refreshNow),
-                    value: nil,
                     symbol: "arrow.clockwise"
                 )
             }
@@ -206,47 +218,72 @@ struct UsagePopoverView: View {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                settingsRow(
+                actionRow(
                     title: presentation.text(.quit),
-                    value: nil,
                     symbol: "rectangle.portrait.and.arrow.right"
                 )
             }
             .buttonStyle(.plain)
         }
-        .padding(8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
-    private var selectedAppearanceTitle: String? {
-        presentation.appearanceOptions.first(where: \.isSelected)?.title
-    }
-
-    private var selectedLanguageTitle: String? {
-        presentation.languageOptions.first(where: \.isSelected)?.title
-    }
-
-    private func settingsRow(title: String, value: String?, symbol: String) -> some View {
-        HStack(spacing: 10) {
+    private func preferenceCell(symbol: String, summary: String) -> some View {
+        HStack(spacing: 9) {
             Image(systemName: symbol)
+                .font(.body)
                 .frame(width: 18)
+            Text(summary)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Image(systemName: "chevron.down")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            Text(title)
-            Spacer()
-            if let value {
-                Text(value)
-                    .foregroundStyle(.secondary)
+        }
+        .foregroundStyle(.primary)
+        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, minHeight: 40)
+        .padding(.horizontal, 10)
+    }
+
+    private func selectionButton<Value>(
+        _ option: MenuOption<Value>,
+        action: @escaping () -> Void
+    ) -> some View where Value: Equatable & Sendable {
+        Button(action: action) {
+            if option.isSelected {
+                Label(option.title, systemImage: "checkmark")
+            } else {
+                Text(option.title)
             }
         }
-        .contentShape(Rectangle())
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
     }
 
-    private func bucketRemaining(_ bucket: RateLimitBucket) -> String {
-        guard let remaining = UsageFormatting.remainingPercent(
-            usedPercent: bucket.primary?.usedPercent
-        ) else { return "--%" }
-        return "\(remaining)%"
+    private func actionRow(title: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.body)
+                .frame(width: 20)
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.system(size: 16))
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .padding(.horizontal, 10)
+        .padding(.vertical, 11)
+    }
+
+    private func applyAppearance() {
+        guard let rawName = controller.appearance.nativeAppearanceName else {
+            NSApplication.shared.appearance = nil
+            return
+        }
+        NSApplication.shared.appearance = NSAppearance(
+            named: NSAppearance.Name(rawValue: rawName)
+        )
     }
 }
 

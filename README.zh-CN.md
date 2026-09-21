@@ -10,9 +10,9 @@
 
 [English README](README.md)
 
-<img src="docs/images/codex-usage-light-dark.png" alt="Codex Usage 浅色与深色状态栏设计" width="100%">
+<img src="docs/images/codex-usage-integrated-footer.png" alt="Codex Usage 浅色与深色整合式偏好底栏设计" width="100%">
 
-<sub>浅色与深色设计已实现。</sub>
+<sub>已选定的浅色与深色整合式偏好底栏设计。</sub>
 
 </div>
 

@@ -140,23 +140,69 @@ struct MenuPresentationTests {
         #expect(presentation.lastResetText.contains("请求超时"))
         #expect(!presentation.lastResetText.contains("Request timed out"))
     }
+
+    @Test
+    func integratedPreferencesFooterHidesAuxiliaryQuotasAndBuildsSummaries() {
+        let presentation = MenuPresentation(
+            snapshot: makePresentationSnapshot(
+                usedPercent: 1,
+                resetCount: 0,
+                includeAuxiliaryBucket: true
+            ),
+            lastReset: nil,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: nil,
+            appearance: .system,
+            language: .zhHans
+        )
+
+        #expect(presentation.displayedAdditionalBuckets.isEmpty)
+        #expect(presentation.appearanceSummary == "外观 · 跟随系统")
+        #expect(presentation.languageSummary == "语言 · 简体中文")
+    }
+
+    @Test
+    func appearanceSelectionMapsToNativeMacOSAppearanceNames() {
+        #expect(AppAppearance.system.nativeAppearanceName == nil)
+        #expect(AppAppearance.light.nativeAppearanceName == "NSAppearanceNameAqua")
+        #expect(AppAppearance.dark.nativeAppearanceName == "NSAppearanceNameDarkAqua")
+    }
 }
 
-private func makePresentationSnapshot(usedPercent: Double, resetCount: Int) -> UsageSnapshot {
-    UsageSnapshot(
+private func makePresentationSnapshot(
+    usedPercent: Double,
+    resetCount: Int,
+    includeAuxiliaryBucket: Bool = false
+) -> UsageSnapshot {
+    let codex = RateLimitBucket(
+        limitId: "codex",
+        limitName: nil,
+        normalModelSlug: nil,
+        primary: RateLimitWindow(
+            usedPercent: usedPercent,
+            windowDurationMins: 10_080,
+            resetsAt: 1_800_000_000
+        ),
+        secondary: nil
+    )
+    let auxiliary = RateLimitBucket(
+        limitId: "base_model_inference",
+        limitName: "gpt-reserve",
+        normalModelSlug: "gpt-5.6-luna",
+        primary: RateLimitWindow(
+            usedPercent: 0,
+            windowDurationMins: 10_080,
+            resetsAt: 1_800_000_000
+        ),
+        secondary: nil
+    )
+    return UsageSnapshot(
         response: RateLimitsResponse(
-            rateLimits: RateLimitBucket(
-                limitId: "codex",
-                limitName: nil,
-                normalModelSlug: nil,
-                primary: RateLimitWindow(
-                    usedPercent: usedPercent,
-                    windowDurationMins: 10_080,
-                    resetsAt: 1_800_000_000
-                ),
-                secondary: nil
-            ),
-            rateLimitsByLimitId: nil,
+            rateLimits: codex,
+            rateLimitsByLimitId: includeAuxiliaryBucket
+                ? ["codex": codex, "base_model_inference": auxiliary]
+                : nil,
             rateLimitResetCredits: ResetCreditsSummary(
                 availableCount: resetCount,
                 credits: resetCount > 0 ? [ResetCredit(id: "credit", status: "available")] : []
