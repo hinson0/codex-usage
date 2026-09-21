@@ -31,8 +31,8 @@ struct UsagePopoverView: View {
                 .padding(.horizontal, 20)
             actionsSection
         }
-        .frame(width: 432)
-        .preferredColorScheme(controller.appearance.colorScheme)
+        .frame(width: 348)
+        .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .onAppear {
             applyAppearance()
             Task { await controller.refresh() }
@@ -56,26 +56,26 @@ struct UsagePopoverView: View {
     }
 
     private var usageSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             if let remaining = presentation.remainingPercent {
                 HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(presentation.text(.codexRemaining))
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                     Spacer(minLength: 16)
                     Text("\(remaining)%")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 23, weight: .bold))
                         .monospacedDigit()
                 }
 
                 ProgressView(value: Double(remaining), total: 100)
                     .progressViewStyle(.linear)
                     .tint(.blue)
-                    .scaleEffect(x: 1, y: 1.65, anchor: .center)
+                    .scaleEffect(x: 1, y: 1.4, anchor: .center)
                     .padding(.vertical, 2)
 
                 if let nextReset = presentation.nextResetText {
                     Text(nextReset)
-                        .font(.system(size: 14))
+                        .font(.system(size: 12.5))
                         .foregroundStyle(.secondary)
                 }
             } else {
@@ -102,9 +102,9 @@ struct UsagePopoverView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 22)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 18)
     }
 
     @ViewBuilder
@@ -113,7 +113,7 @@ struct UsagePopoverView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let count = presentation.availableResetsText {
                     Text(count)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                 }
 
                 Button {
@@ -135,23 +135,23 @@ struct UsagePopoverView: View {
                 .disabled(!presentation.isResetEnabled)
 
                 Text(presentation.lastResetText)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 22)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
         } else {
             VStack(spacing: 10) {
                 Text(presentation.resetActionTitle)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                 Text(presentation.lastResetText)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 34)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 24)
         }
     }
 
@@ -193,13 +193,13 @@ struct UsagePopoverView: View {
             .layoutPriority(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(6)
+        .padding(5)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.primary.opacity(0.055))
         )
-        .padding(.horizontal, 14)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 12)
     }
 
     private var actionsSection: some View {
@@ -232,10 +232,10 @@ struct UsagePopoverView: View {
     private func preferenceCell(symbol: String, summary: String) -> some View {
         HStack(spacing: 9) {
             Image(systemName: symbol)
-                .font(.body)
-                .frame(width: 18)
+                .font(.system(size: 13))
+                .frame(width: 16)
             Text(summary)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 6)
             Image(systemName: "chevron.down")
@@ -244,8 +244,8 @@ struct UsagePopoverView: View {
         }
         .foregroundStyle(.primary)
         .contentShape(Rectangle())
-        .frame(maxWidth: .infinity, minHeight: 40)
-        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 36)
+        .padding(.horizontal, 8)
     }
 
     private func selectionButton<Value>(
@@ -264,35 +264,26 @@ struct UsagePopoverView: View {
     private func actionRow(title: String, symbol: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.body)
-                .frame(width: 20)
+                .font(.system(size: 14))
+                .frame(width: 18)
                 .foregroundStyle(.secondary)
             Text(title)
-                .font(.system(size: 16))
+                .font(.system(size: 14))
             Spacer()
         }
         .contentShape(Rectangle())
         .padding(.horizontal, 10)
-        .padding(.vertical, 11)
+        .padding(.vertical, 9)
     }
 
     private func applyAppearance() {
-        guard let rawName = controller.appearance.nativeAppearanceName else {
-            NSApplication.shared.appearance = nil
-            return
-        }
-        NSApplication.shared.appearance = NSAppearance(
-            named: NSAppearance.Name(rawValue: rawName)
-        )
-    }
-}
-
-private extension AppAppearance {
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
+        let rawName = controller.appearance.nativeAppearanceName
+            ?? AppAppearance.light.nativeAppearanceName!
+        let appearance = NSAppearance(named: NSAppearance.Name(rawValue: rawName))
+        NSApplication.shared.appearance = appearance
+        NSApplication.shared.windows.forEach { $0.appearance = appearance }
+        DispatchQueue.main.async {
+            NSApplication.shared.windows.forEach { $0.appearance = appearance }
         }
     }
 }

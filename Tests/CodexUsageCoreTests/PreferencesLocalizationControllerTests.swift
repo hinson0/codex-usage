@@ -83,6 +83,17 @@ struct PreferencesLocalizationControllerTests {
     }
 
     @Test
+    func freshPreferencesDefaultToLightAndEnglish() {
+        let context = makeDefaults()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+
+        let store = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
+
+        #expect(store.appearance == .light)
+        #expect(store.language == .english)
+    }
+
+    @Test
     @MainActor
     func controllerSerializesOverlappingRefreshes() async {
         let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0), readDelay: .milliseconds(80))

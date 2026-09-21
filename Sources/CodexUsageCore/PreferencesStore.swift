@@ -29,12 +29,18 @@ public final class PreferencesStore: @unchecked Sendable {
     }
 
     public var appearance: AppAppearance {
-        get { AppAppearance(rawValue: defaults.string(forKey: appearanceKey) ?? "") ?? .system }
+        get {
+            let stored = AppAppearance(rawValue: defaults.string(forKey: appearanceKey) ?? "")
+            return stored == .dark ? .dark : .light
+        }
         set { defaults.set(newValue.rawValue, forKey: appearanceKey) }
     }
 
     public var language: AppLanguage {
-        get { AppLanguage(rawValue: defaults.string(forKey: languageKey) ?? "") ?? .system }
+        get {
+            let stored = AppLanguage(rawValue: defaults.string(forKey: languageKey) ?? "")
+            return stored == .zhHans ? .zhHans : .english
+        }
         set { defaults.set(newValue.rawValue, forKey: languageKey) }
     }
 

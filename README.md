@@ -11,9 +11,9 @@
 
 [Chinese](README.zh-CN.md)
 
-<img src="docs/images/codex-usage-integrated-footer.png" alt="Codex Usage integrated preferences footer in light and dark appearances" width="100%">
+<img src="docs/images/codex-usage-compact-no-system.png" alt="Compact Codex Usage menu bar popover in light and dark appearances" width="100%">
 
-<sub>Selected integrated-footer design target in light and dark appearances.</sub>
+<sub>Selected compact design target in light and dark appearances.</sub>
 
 </div>
 
@@ -38,8 +38,8 @@ Codex 73% (2 resets)  Two resets available
 - Confirm-before-redeem reset action with idempotent retry protection.
 - Most recent reset time and outcome stored locally.
 - Automatic refresh on launch, every 60 seconds, and when the popover opens.
-- Follow System, Light, and Dark appearances.
-- Follow System, English, and Simplified Chinese languages.
+- Light and Dark appearances.
+- English and Simplified Chinese languages, defaulting to English.
 - No Dock icon and no full application window.
 
 ### Privacy and safety

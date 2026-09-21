@@ -12,7 +12,7 @@ struct MenuPresentationTests {
             isRefreshing: false,
             isRedeeming: false,
             error: nil,
-            appearance: .system,
+            appearance: .light,
             language: .zhHans
         )
 

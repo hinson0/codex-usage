@@ -33,8 +33,8 @@ The app must also let the user consume an available reset, clearly report when n
 - Available reset count in the status bar title.
 - A detailed menu with quota timing, reset availability, refresh state, last reset record, manual refresh, and quit.
 - Confirmed consumption of one reset through Codex App Server.
-- A native appearance submenu with Follow System, Light, and Dark choices.
-- A language submenu with Follow System, English, and Simplified Chinese choices.
+- A native appearance submenu with Light and Dark choices.
+- A language submenu with English and Simplified Chinese choices; English is the default.
 - Automatic refresh and recovery when the App Server process exits.
 - Local persistence for the most recent reset attempt, selected appearance, and selected language.
 - A polished bilingual README and public-repository-safe design assets.
@@ -78,8 +78,8 @@ The major components are:
 
 4. **PreferencesStore**
    - Stores one reset record in `UserDefaults`: attempted timestamp, outcome, and optional user-facing error text.
-   - Stores the selected appearance as `system`, `light`, or `dark`; the default is `system`.
-   - Stores the selected language as `system`, `english`, or `zhHans`; the default is `system`.
+   - Stores the selected appearance as `light` or `dark`; the default is `light`. A legacy `system` value migrates to `light`.
+   - Stores the selected language as `english` or `zhHans`; the default is `english`. A legacy `system` value migrates to `english`.
    - Never stores credentials, account identifiers, or reset credit identifiers.
 
 5. **MenuBarApplication**
@@ -138,10 +138,10 @@ Failure to locate a binary is shown as an actionable menu error rather than term
 
 ### Selected Visual Direction
 
-The selected design is the integrated-preferences-footer direction shown in the project reference image at `docs/images/codex-usage-integrated-footer.png`.
+The selected design is the compact integrated-preferences-footer direction shown in the project reference image at `docs/images/codex-usage-compact-no-system.png`.
 
-- The popover is 432 points wide and uses a thin horizontal bar for the primary Codex remaining percentage.
-- Information uses a 20-point outer inset, stronger typography hierarchy, and lightweight separators.
+- The popover is 348 points wide and uses a thin horizontal bar for the primary Codex remaining percentage.
+- Information uses a 16-point outer inset, compact typography, balanced vertical rhythm, and lightweight separators.
 - Blue is reserved for the usage bar and enabled reset action.
 - Light and dark appearances keep the same hierarchy, spacing, and controls.
 - The native material, text, separators, and status-bar treatment adapt to the selected appearance.
@@ -164,8 +164,8 @@ Dates use the effective app language and current system time zone.
 
 ### Localization
 
-- System language maps any `zh-*` locale to Simplified Chinese; other locales use English.
-- A manual language choice overrides later system-language changes and survives relaunch.
+- English is the default language; users can switch directly between English and Simplified Chinese.
+- A manual language choice survives relaunch.
 - English and Simplified Chinese expose the same controls, states, error meaning, and accessibility labels.
 - English status titles use `Codex 73% (1 reset)` or `Codex 73% (2 resets)`; Simplified Chinese uses `Codex 73%(2 次)`.
 - Missing or zero reset data hides the status-title suffix in both languages.
@@ -199,8 +199,8 @@ Unit tests cover:
 - Decoding partial and multi-bucket responses.
 - All reset outcomes and their display text.
 - Last-reset persistence and decoding invalid stored data.
-- Appearance selection, persistence, default system-following behavior, and menu checkmarks.
-- English and Simplified Chinese copy parity, system-language resolution, manual override, runtime switching, and persistence.
+- Appearance selection, Light default, legacy-value migration, persistence, and menu checkmarks.
+- English and Simplified Chinese copy parity, English default, legacy-value migration, runtime switching, and persistence.
 - Idempotency-key reuse for one logical retry.
 - JSON-RPC request/response matching and error propagation through an injectable transport.
 
@@ -237,8 +237,8 @@ The minimum deployment target is macOS 13. The bundle identifier is `local.codex
 - Zero resets produces the exact disabled text **“当前没有可用 reset”**.
 - A positive reset count enables a confirmed reset action.
 - Reset attempts use an idempotency key, refresh usage afterward, and display the persisted latest time and result.
-- The appearance submenu switches between Follow System, Light, and Dark, persists the choice, and does not alter the system-wide appearance.
-- The language submenu switches between Follow System, English, and Simplified Chinese at runtime and persists the choice.
+- The appearance submenu switches between Light and Dark, applies the selected native macOS appearance immediately, persists the choice, and does not alter the system-wide appearance.
+- The language submenu switches between English and Simplified Chinese at runtime, defaults to English, and persists the choice.
 - `README.md` is the default English landing page; `README.zh-CN.md` contains the matching Simplified Chinese version, and both embed the selected light/dark design image and label unfinished functionality honestly.
 - Network, authentication, protocol, and missing-binary errors remain visible and recoverable.
 - All tests pass, the release binary compiles, the `.app` is signed, and the launch smoke test succeeds on the inspected Mac.

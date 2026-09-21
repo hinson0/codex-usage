@@ -11,9 +11,9 @@
 
 [English README](README.md)
 
-<img src="docs/images/codex-usage-integrated-footer.png" alt="Codex Usage 浅色与深色整合式偏好底栏设计" width="100%">
+<img src="docs/images/codex-usage-compact-no-system.png" alt="Codex Usage 紧凑型浅色与深色状态栏设计" width="100%">
 
-<sub>已选定的浅色与深色整合式偏好底栏设计。</sub>
+<sub>已选定的紧凑型浅色与深色设计。</sub>
 
 </div>
 
@@ -38,8 +38,8 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - 使用 reset 前必须确认，并通过幂等重试避免重复消费。
 - 在本机保存最近一次 reset 的时间和结果。
 - 启动时、每 60 秒以及打开弹窗时自动刷新。
-- 支持跟随系统、浅色和深色外观。
-- 支持跟随系统、English 和简体中文界面。
+- 支持浅色和深色外观。
+- 支持 English 和简体中文界面，默认使用 English。
 - 不显示 Dock 图标，也不提供多余的主窗口。
 
 ### 隐私与安全

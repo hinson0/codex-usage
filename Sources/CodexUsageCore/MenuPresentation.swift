@@ -115,7 +115,6 @@ public struct MenuPresentation: Sendable {
 
     public var appearanceOptions: [MenuOption<AppAppearance>] {
         [
-            option(.system, key: .followSystem),
             option(.light, key: .light),
             option(.dark, key: .dark),
         ]
@@ -123,7 +122,6 @@ public struct MenuPresentation: Sendable {
 
     public var languageOptions: [MenuOption<AppLanguage>] {
         [
-            languageOption(.system, key: .followSystem),
             languageOption(.zhHans, key: .simplifiedChinese),
             languageOption(.english, key: .english),
         ]
@@ -134,12 +132,12 @@ public struct MenuPresentation: Sendable {
     }
 
     public var appearanceSummary: String {
-        let selected = appearanceOptions.first(where: \.isSelected)?.title ?? text(.followSystem)
+        let selected = appearanceOptions.first(where: \.isSelected)?.title ?? text(.light)
         return "\(text(.appearance)) · \(selected)"
     }
 
     public var languageSummary: String {
-        let selected = languageOptions.first(where: \.isSelected)?.title ?? text(.followSystem)
+        let selected = languageOptions.first(where: \.isSelected)?.title ?? text(.english)
         return "\(text(.language)) · \(selected)"
     }
 
