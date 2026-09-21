@@ -41,4 +41,23 @@ assert_fails release_tag_is_present "v0.4.0" $'refs/tags/v0.2.0\nrefs/tags/v0.3.
 assert_fails release_require_private_key ""
 release_require_private_key "test-only-key"
 
+declare -F release_take_private_key >/dev/null || {
+  echo "Private-key environment isolation is missing" >&2
+  exit 1
+}
+(
+  export SPARKLE_PRIVATE_KEY="private-test-value"
+  captured_key=""
+  release_take_private_key captured_key
+  assert_equal "$captured_key" "private-test-value"
+  [[ -z "${SPARKLE_PRIVATE_KEY+x}" ]] || {
+    echo "Private key remains exported after capture" >&2
+    exit 1
+  }
+  if env | grep -q '^SPARKLE_PRIVATE_KEY='; then
+    echo "Child processes can still read the private key" >&2
+    exit 1
+  fi
+)
+
 echo "Release script checks passed"

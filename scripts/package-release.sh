@@ -6,8 +6,8 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd -P)"
 source "$repo_root/scripts/release-lib.sh"
 cd "$repo_root"
 
-private_key="${SPARKLE_PRIVATE_KEY:-}"
-release_require_private_key "$private_key"
+private_key=""
+release_take_private_key private_key
 
 swift package resolve >/dev/null
 generate_appcast="$(find "$repo_root/.build" -type f -name generate_appcast -perm -111 -print -quit)"

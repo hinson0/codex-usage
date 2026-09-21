@@ -12,6 +12,7 @@ workflow_path="$repo_root/.github/workflows/release.yml"
 
 ruby - "$workflow_path" <<'RUBY'
 require "yaml"
+require "open3"
 
 path = ARGV.fetch(0)
 workflow = YAML.safe_load(File.read(path), aliases: true)
@@ -34,6 +35,13 @@ raise "wrong runner" unless job.fetch("runs-on") == "macos-15"
 raise "automatic publication gate missing" unless job.fetch("env").fetch("SHOULD_PUBLISH").include?("vars.RELEASES_ENABLED")
 
 steps = job.fetch("steps")
+steps.each do |step|
+  script = step["run"]
+  next unless script
+  _, syntax_error, status = Open3.capture3("bash", "-n", stdin_data: script)
+  raise "invalid shell in #{step.fetch("name")}: #{syntax_error}" unless status.success?
+  raise "patch artifact in #{step.fetch("name")}" if script.match?(/\s\+\s+(?:--|https:)/)
+end
 checkout = steps.find { |step| step["uses"]&.start_with?("actions/checkout@") }
 raise "checkout missing full history" unless checkout&.dig("with", "fetch-depth") == 0
 

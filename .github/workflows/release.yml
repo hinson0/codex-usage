@@ -96,7 +96,9 @@ jobs:
           set -euo pipefail
           release_dir="dist/release"
           release_json="$(
-            gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" +              --jq ".[] | select(.tag_name == \"$TAG\")" +              | head -n 1
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"$TAG\")" \
+              | head -n 1
           )"
 
           if [[ -z "$release_json" ]]; then
@@ -104,9 +106,15 @@ jobs:
               echo "Tag $TAG already exists without a resumable draft release." >&2
               exit 1
             fi
-            gh release create "$TAG" +              --target "$GITHUB_SHA" +              --title "Codex Usage $VERSION" +              --generate-notes +              --draft
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "Codex Usage $VERSION" \
+              --generate-notes \
+              --draft
             release_json="$(
-              gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" +                --jq ".[] | select(.tag_name == \"$TAG\")" +                | head -n 1
+              gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+                --jq ".[] | select(.tag_name == \"$TAG\")" \
+                | head -n 1
             )"
           fi
 
@@ -132,10 +140,15 @@ jobs:
           for file in "${files[@]}"; do
             name="$(basename "$file")"
             asset_id="$(
-              gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" +                --jq ".[] | select(.name == \"$name\") | .id" +                | head -n 1
+              gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" \
+                --jq ".[] | select(.name == \"$name\") | .id" \
+                | head -n 1
             )"
             if [[ -n "$asset_id" ]]; then
-              gh api +                -H "Accept: application/octet-stream" +                "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" +                > "$resume_dir/$name"
+              gh api \
+                -H "Accept: application/octet-stream" \
+                "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" \
+                > "$resume_dir/$name"
               cmp -s "$file" "$resume_dir/$name" || {
                 echo "Existing draft asset $name differs from the validated artifact." >&2
                 exit 1
@@ -147,7 +160,9 @@ jobs:
 
           expected_names="$(printf '%s\n' "$ASSET_STEM.dmg" "$ASSET_STEM.zip" SHA256SUMS appcast.xml | sort)"
           actual_names="$(
-            gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" +              --jq '.[].name' +              | sort
+            gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" \
+              --jq '.[].name' \
+              | sort
           )"
           [[ "$actual_names" == "$expected_names" ]] || {
             echo "Draft release assets do not match the four-file contract." >&2
@@ -179,7 +194,9 @@ jobs:
 
           stable_feed="$download_dir/stable-appcast.xml"
           for attempt in 1 2 3 4 5 6; do
-            if curl -fsSL +              https://github.com/hinson0/codex-usage/releases/latest/download/appcast.xml +              -o "$stable_feed"; then
+            if curl -fsSL \
+              https://github.com/hinson0/codex-usage/releases/latest/download/appcast.xml \
+              -o "$stable_feed"; then
               break
             fi
             [[ "$attempt" != "6" ]] || exit 1

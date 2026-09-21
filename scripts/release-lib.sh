@@ -31,6 +31,17 @@ release_require_private_key() {
   }
 }
 
+release_take_private_key() {
+  local destination="$1"
+  [[ "$destination" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || {
+    echo "Invalid private-key destination variable: $destination" >&2
+    return 1
+  }
+  release_require_private_key "${SPARKLE_PRIVATE_KEY:-}" || return 1
+  printf -v "$destination" '%s' "$SPARKLE_PRIVATE_KEY"
+  unset SPARKLE_PRIVATE_KEY
+}
+
 release_validate_zip() (
   set -euo pipefail
 
