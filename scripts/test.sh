@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+readonly repo_root="$(cd "$(dirname "$0")/.." && pwd -P)"
 readonly frameworks_dir="/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
 readonly testing_libraries_dir="/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
 
@@ -31,3 +32,5 @@ swiftc \
   -o "$runner"
 
 "$runner" "$@"
+
+"$repo_root/Tests/ReleaseScriptsTests.sh"
