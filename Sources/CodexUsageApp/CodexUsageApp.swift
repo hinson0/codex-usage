@@ -29,8 +29,8 @@ private struct StatusItemLabel: View {
 
     var body: some View {
         Text(controller.statusTitle)
+            .task { await updater.monitorForUpdates() }
             .task {
-                updater.start()
                 await controller.refresh()
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(60))

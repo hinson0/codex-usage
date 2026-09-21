@@ -38,6 +38,7 @@ struct UsagePopoverView: View {
             .frame(width: 0, height: 0)
         )
         .onAppear {
+            updater.checkForUpdateInformation()
             Task { await controller.refresh() }
         }
         .onReceive(NotificationCenter.default.publisher(
@@ -202,7 +203,8 @@ struct UsagePopoverView: View {
                 } label: {
                     compactActionCell(
                         title: presentation.checkForUpdatesTitle,
-                        symbol: "arrow.down.circle"
+                        symbol: "arrow.down.circle",
+                        titleColor: presentation.hasAvailableUpdate ? .green : .primary
                     )
                 }
                 .buttonStyle(.plain)
@@ -291,13 +293,16 @@ struct UsagePopoverView: View {
         .padding(.vertical, 9)
     }
 
-    private func compactActionCell(title: String, symbol: String) -> some View {
+    private func compactActionCell(
+        title: String, symbol: String, titleColor: Color = .primary
+    ) -> some View {
         HStack(spacing: 9) {
             Image(systemName: symbol)
                 .font(.system(size: 13))
                 .frame(width: 16)
                 .foregroundStyle(.secondary)
             Text(title)
+                .foregroundStyle(titleColor)
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
