@@ -19,6 +19,7 @@ public struct MenuPresentation: Sendable {
     public let appearance: AppAppearance
     public let language: AppLanguage
     public let timeZone: TimeZone
+    public let hasAvailableUpdate: Bool
     public let canCheckForUpdates: Bool
 
     public init(
@@ -28,7 +29,8 @@ public struct MenuPresentation: Sendable {
         appearance: AppAppearance,
         language: AppLanguage,
         timeZone: TimeZone = .current,
-        canCheckForUpdates: Bool = false
+        canCheckForUpdates: Bool = false,
+        hasAvailableUpdate: Bool = false
     ) {
         self.snapshot = snapshot
         self.isRefreshing = isRefreshing
@@ -36,6 +38,7 @@ public struct MenuPresentation: Sendable {
         self.appearance = appearance
         self.language = language
         self.timeZone = timeZone
+        self.hasAvailableUpdate = hasAvailableUpdate
         self.canCheckForUpdates = canCheckForUpdates
     }
 
@@ -75,7 +78,7 @@ public struct MenuPresentation: Sendable {
     }
 
     public var checkForUpdatesTitle: String {
-        text(.checkForUpdates)
+        text(hasAvailableUpdate ? .updateAvailable : .checkForUpdates)
     }
 
     public var isUpdateEnabled: Bool {

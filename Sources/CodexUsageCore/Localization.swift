@@ -16,6 +16,7 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case simplifiedChinese
     case english
     case refreshNow
+    case updateAvailable
     case checkForUpdates
     case quit
     case loading
@@ -44,6 +45,7 @@ public enum LocalizationCatalog {
             .english: "English",
             .refreshNow: "立即刷新",
             .checkForUpdates: "检查更新…",
+            .updateAvailable: "有新版本",
             .quit: "退出",
             .loading: "正在读取 Codex 用量…",
             .loginRequired: "请先在 Codex 中登录",
@@ -68,6 +70,7 @@ public enum LocalizationCatalog {
             .english: "English",
             .refreshNow: "Refresh Now",
             .checkForUpdates: "Check for Updates…",
+            .updateAvailable: "Update Available",
             .quit: "Quit",
             .loading: "Loading Codex usage…",
             .loginRequired: "Sign in to Codex first",
