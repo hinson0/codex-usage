@@ -41,6 +41,24 @@ final class UpdateCoordinator: NSObject, ObservableObject, SPUUpdaterDelegate {
         controller.startUpdater()
     }
 
+    // Probing only: finding a release updates the label without offering installation.
+    func checkForUpdateInformation() {
+        guard hasStarted, !controller.updater.sessionInProgress else { return }
+        controller.updater.checkForUpdateInformation()
+    }
+
+    func monitorForUpdates() async {
+        start()
+        while !Task.isCancelled {
+            checkForUpdateInformation()
+            do {
+                try await Task.sleep(for: .seconds(5 * 60 * 60))
+            } catch {
+                return
+            }
+        }
+    }
+
     func checkForUpdates() {
         guard canCheckForUpdates else { return }
         controller.checkForUpdates(nil)

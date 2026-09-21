@@ -222,7 +222,7 @@ struct MenuPresentationTests {
                     hasAvailableUpdate: true
                 )
                 #expect(presentation.checkForUpdatesTitle == (
-                    language == .zhHans ? "有新版本" : "Update Available"
+                    language == .zhHans ? "新版本" : "New Version"
                 ))
                 #expect(presentation.isUpdateEnabled == canCheck)
             }
