@@ -32,10 +32,12 @@ The normalized side-by-side image compares the complete app-owned content at the
 
 - No actionable P0, P1, or P2 findings remain.
 - P3: the generated mock uses slightly larger display typography than native macOS controls. Keeping native metrics avoids cramped labels and preserves platform consistency.
-- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.0.1 (10)`, and the production scene remains a single `MenuBarExtra`.
+- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.0.2 (11)`, and the production scene remains a single `MenuBarExtra`.
 - The live account has no five-hour window, so the finite `x% - y%` popover state was not visually captured. Unit tests cover both window orders, missing percentages, duplicate 300-minute windows, and longer-window progress/reset selection.
 
 ## Comparison History
+
+- Preference centering correction: the Appearance and Language menus now use their intrinsic horizontal size inside equal-width cells. Removed the expanding gap in their labels, retaining the native dropdown indicators. Verified the actual SwiftUI view in `docs/images/qa/codex-usage-centered-preferences-zh.png` (348 × 341 points, Light/Simplified Chinese, fixture usage 84%). Both icon/text/indicator groups are centered in their respective halves, matching the action row below. This isolated AppKit render uses an inactive window (gray progress tint), a stub updater, and no bundle version; it verifies layout rather than live account or updater behavior.
 
 1. Baseline: the old UI devoted a full section to reset redemption, zero-reset copy, and locally stored history.
 2. Selected redesign: removed reset operations/history, moved positive reset count beside the reset time, added the unlimited five-hour row, and placed Refresh/Update side by side.

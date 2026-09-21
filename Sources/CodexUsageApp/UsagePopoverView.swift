@@ -145,6 +145,7 @@ struct UsagePopoverView: View {
                 )
             }
             .menuStyle(.borderlessButton)
+            .fixedSize(horizontal: true, vertical: false)
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
 
@@ -164,6 +165,7 @@ struct UsagePopoverView: View {
                 )
             }
             .menuStyle(.borderlessButton)
+            .fixedSize(horizontal: true, vertical: false)
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
         }
@@ -240,14 +242,13 @@ struct UsagePopoverView: View {
             Text(summary)
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
-            Spacer(minLength: 6)
             Image(systemName: "chevron.down")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
         .foregroundStyle(.primary)
         .contentShape(Rectangle())
-        .frame(maxWidth: .infinity, minHeight: 36)
+        .frame(minHeight: 36)
         .padding(.horizontal, 8)
     }
 
