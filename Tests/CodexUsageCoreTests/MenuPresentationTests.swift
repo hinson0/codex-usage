@@ -71,8 +71,8 @@ struct MenuPresentationTests {
 
         #expect(presentation.appearanceOptions.filter(\.isSelected).map(\.value) == [.light])
         #expect(presentation.languageOptions.filter(\.isSelected).map(\.value) == [.english])
-        #expect(presentation.appearanceOptions.map(\.title) == ["Follow System", "Light", "Dark"])
-        #expect(presentation.languageOptions.map(\.title) == ["Follow System", "简体中文", "English"])
+        #expect(presentation.appearanceOptions.map(\.title) == ["Light", "Dark"])
+        #expect(presentation.languageOptions.map(\.title) == ["简体中文", "English"])
     }
 
     @Test
@@ -104,7 +104,7 @@ struct MenuPresentationTests {
             isRefreshing: false,
             isRedeeming: false,
             error: .authenticationRequired,
-            appearance: .system,
+            appearance: .light,
             language: .zhHans
         )
         let english = MenuPresentation(
@@ -158,7 +158,7 @@ struct MenuPresentationTests {
         )
 
         #expect(presentation.displayedAdditionalBuckets.isEmpty)
-        #expect(presentation.appearanceSummary == "外观 · 跟随系统")
+        #expect(presentation.appearanceSummary == "外观 · 浅色")
         #expect(presentation.languageSummary == "语言 · 简体中文")
     }
 

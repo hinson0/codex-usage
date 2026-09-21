@@ -64,9 +64,22 @@ struct PreferencesLocalizationControllerTests {
 
         let store = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
 
-        #expect(store.appearance == .system)
-        #expect(store.language == .system)
+        #expect(store.appearance == .light)
+        #expect(store.language == .english)
         #expect(store.lastReset == nil)
+    }
+
+    @Test
+    func legacySystemSelectionsMigrateToLightAndEnglish() {
+        let context = makeDefaults()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        context.defaults.set(AppAppearance.system.rawValue, forKey: "test.appearance")
+        context.defaults.set(AppLanguage.system.rawValue, forKey: "test.language")
+
+        let store = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
+
+        #expect(store.appearance == .light)
+        #expect(store.language == .english)
     }
 
     @Test
