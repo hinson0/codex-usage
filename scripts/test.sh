@@ -3,8 +3,14 @@
 set -euo pipefail
 
 readonly repo_root="$(cd "$(dirname "$0")/.." && pwd -P)"
-readonly frameworks_dir="/Library/Developer/CommandLineTools/Library/Developer/Frameworks"
-readonly testing_libraries_dir="/Library/Developer/CommandLineTools/Library/Developer/usr/lib"
+readonly developer_dir="${DEVELOPER_DIR:-$(xcode-select -p)}"
+if [[ -d "$developer_dir/Library/Developer/Frameworks/Testing.framework" ]]; then
+  readonly frameworks_dir="$developer_dir/Library/Developer/Frameworks"
+  readonly testing_libraries_dir="$developer_dir/Library/Developer/usr/lib"
+else
+  readonly frameworks_dir="$developer_dir/Library/Frameworks"
+  readonly testing_libraries_dir="$developer_dir/usr/lib"
+fi
 
 if [[ ! -d "$frameworks_dir/Testing.framework" ]]; then
   echo "Testing.framework was not found in Command Line Tools." >&2

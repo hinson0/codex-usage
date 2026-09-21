@@ -4,6 +4,7 @@ import SwiftUI
 
 struct UsagePopoverView: View {
     @ObservedObject var controller: UsageController
+    @ObservedObject var updater: UpdateCoordinator
     @State private var showsResetConfirmation = false
 
     private var presentation: MenuPresentation {
@@ -14,7 +15,8 @@ struct UsagePopoverView: View {
             isRedeeming: controller.isRedeeming,
             error: controller.displayError,
             appearance: controller.appearance,
-            language: controller.language
+            language: controller.language,
+            canCheckForUpdates: updater.canCheckForUpdates
         )
     }
 
@@ -216,6 +218,17 @@ struct UsagePopoverView: View {
             }
             .buttonStyle(.plain)
             .disabled(controller.isRefreshing || controller.isRedeeming)
+
+            Button {
+                updater.checkForUpdates()
+            } label: {
+                actionRow(
+                    title: presentation.checkForUpdatesTitle,
+                    symbol: "arrow.down.circle"
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(!presentation.isUpdateEnabled)
 
             Button {
                 NSApplication.shared.terminate(nil)

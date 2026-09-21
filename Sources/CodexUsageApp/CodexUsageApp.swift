@@ -6,16 +6,18 @@ import SwiftUI
 @MainActor
 struct CodexUsageApplication: App {
     @StateObject private var controller: UsageController
+    @StateObject private var updater: UpdateCoordinator
 
     init() {
         _controller = StateObject(wrappedValue: UsageController(service: CodexAppServerClient()))
+        _updater = StateObject(wrappedValue: UpdateCoordinator())
     }
 
     var body: some Scene {
         MenuBarExtra {
-            UsagePopoverView(controller: controller)
+            UsagePopoverView(controller: controller, updater: updater)
         } label: {
-            StatusItemLabel(controller: controller)
+            StatusItemLabel(controller: controller, updater: updater)
         }
         .menuBarExtraStyle(.window)
     }
@@ -23,10 +25,12 @@ struct CodexUsageApplication: App {
 
 private struct StatusItemLabel: View {
     @ObservedObject var controller: UsageController
+    @ObservedObject var updater: UpdateCoordinator
 
     var body: some View {
         Text(controller.statusTitle)
             .task {
+                updater.start()
                 await controller.refresh()
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(60))
