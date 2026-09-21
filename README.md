@@ -38,7 +38,7 @@ Codex 73% (2 resets)  Two resets available
 - Reset count shown only when one or more resets are available.
 - Clear “no reset available” state when the count is zero.
 - Confirm-before-redeem reset action with idempotent retry protection.
-- Most recent reset time and outcome stored locally.
+- The three most recent reset attempts stored locally, newest first.
 - Automatic refresh on launch, every 60 seconds, and when the popover opens.
 - Light and Dark appearances.
 - English and Simplified Chinese languages, defaulting to English.
@@ -55,7 +55,7 @@ Each GitHub Release provides two application packages:
   in-app updates.
 
 The Release also includes `SHA256SUMS` and the signed `appcast.xml` update feed.
-Version `0.3.0` is the first Sparkle-enabled build, so it must be installed
+Version `0.4.0` is the first Sparkle-enabled build, so it must be installed
 manually; later releases can be found from “Check for Updates…” and by scheduled
 background checks. Updates are never installed silently.
 
@@ -63,6 +63,7 @@ background checks. Updates are never installed silently.
 
 - Uses the official local Codex App Server and your existing Codex sign-in.
 - Does not read, copy, or persist ChatGPT access tokens.
+- Reset history contains only attempts made through this app; the App Server does not expose ChatGPT's web history.
 - Communicates with a local child process over pipes; it does not open a listening network port.
 - Never redeems a reset automatically.
 - Automated tests never consume a real reset.

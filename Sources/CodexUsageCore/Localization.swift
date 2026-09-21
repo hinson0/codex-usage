@@ -9,6 +9,7 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case availableResets
     case useOneReset
     case lastReset
+    case resetHistory
     case noResetHistory
     case appearance
     case light
@@ -48,6 +49,7 @@ public enum LocalizationCatalog {
             .availableResets: "可用 reset：%d 次",
             .useOneReset: "使用 1 次 reset…",
             .lastReset: "最近一次 reset：%@",
+            .resetHistory: "历史记录",
             .noResetHistory: "尚未使用过 reset",
             .appearance: "外观",
             .light: "浅色",
@@ -84,6 +86,7 @@ public enum LocalizationCatalog {
             .availableResets: "Available resets: %d",
             .useOneReset: "Use 1 reset…",
             .lastReset: "Last reset: %@",
+            .resetHistory: "History",
             .noResetHistory: "No reset has been used yet",
             .appearance: "Appearance",
             .light: "Light",

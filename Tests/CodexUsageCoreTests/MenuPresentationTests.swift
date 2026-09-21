@@ -97,6 +97,45 @@ struct MenuPresentationTests {
     }
 
     @Test
+    func resetHistoryRowsShowOnlyTheNewestThreeRecords() {
+        let records = [
+            LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: 1_795_000_003),
+                result: .outcome(.reset)
+            ),
+            LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: 1_795_000_002),
+                result: .outcome(.alreadyRedeemed)
+            ),
+            LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: 1_795_000_001),
+                result: .outcome(.noCredit)
+            ),
+            LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: 1_795_000_000),
+                result: .outcome(.nothingToReset)
+            ),
+        ]
+        let presentation = MenuPresentation(
+            snapshot: nil,
+            lastReset: nil,
+            resetHistory: records,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: nil,
+            appearance: .light,
+            language: .english,
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        #expect(presentation.resetHistoryTexts.count == 3)
+        #expect(presentation.resetHistoryTexts.first?.contains("Successful") == true)
+        #expect(presentation.resetHistoryTexts.dropFirst().first?.contains("Already redeemed") == true)
+        #expect(presentation.resetHistoryTexts.last?.contains("No reset credit available") == true)
+        #expect(!presentation.resetHistoryTexts.joined().contains("Nothing to reset"))
+    }
+
+    @Test
     func typedOperationalErrorsRelocalizeWithTheSelectedLanguage() {
         let chinese = MenuPresentation(
             snapshot: nil,

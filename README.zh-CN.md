@@ -38,7 +38,7 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - 仅在 reset 数量大于零时显示次数。
 - reset 为零时明确显示“当前没有可用 reset”。
 - 使用 reset 前必须确认，并通过幂等重试避免重复消费。
-- 在本机保存最近一次 reset 的时间和结果。
+- 在本机保存最近 3 次 reset 尝试的时间和结果，最新记录优先。
 - 启动时、每 60 秒以及打开弹窗时自动刷新。
 - 支持浅色和深色外观。
 - 支持 English 和简体中文界面，默认使用 English。
@@ -52,7 +52,7 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - `CodexUsage-vX.Y.Z-macOS.dmg` 给人手动安装，打开后拖进“应用程序”即可。
 - `CodexUsage-vX.Y.Z-macOS.zip` 是 Sparkle 在 App 内更新时使用的同一份签名归档。
 
-Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.3.0`
+Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.4.0`
 是首个支持 Sparkle 的版本，需要先手动安装；后续版本可通过“检查更新…”或后台
 定时检查发现，并且不会静默强制安装。
 
@@ -60,6 +60,7 @@ Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.3
 
 - 使用官方本地 Codex App Server 和已有的 Codex 登录状态。
 - 不读取、不复制、不保存 ChatGPT Token。
+- reset 历史仅包含通过本 App 发起的操作；App Server 不提供 ChatGPT 网页历史。
 - 仅通过本机管道与子进程通信，不开放网络监听端口。
 - 永远不会自动使用 reset。
 - 自动化测试不会消费真实 reset。

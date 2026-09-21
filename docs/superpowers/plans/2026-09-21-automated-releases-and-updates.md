@@ -14,7 +14,7 @@
 
 - Keep the deployment target at macOS 13 or newer and publish a universal `arm64` + `x86_64` application.
 - `Packaging/Info.plist` remains the sole version source of truth.
-- This feature changes `0.2.0 (2)` to `0.3.0 (3)` exactly once.
+- This feature changes the concurrently landed `0.3.0 (3)` build to `0.4.0 (4)` exactly once.
 - Public assets are exactly the versioned DMG, versioned ZIP, `SHA256SUMS`, and `appcast.xml`.
 - The DMG is for manual installation; the ZIP is the only Sparkle update enclosure.
 - Only the public EdDSA key enters Git history; the private key lives in the login Keychain and GitHub Actions secret `SPARKLE_PRIVATE_KEY`.
@@ -663,20 +663,20 @@ git commit -m "ci: automate verified GitHub releases"
 
 **Interfaces:**
 - Consumes: every earlier task, GitHub authentication for `hinson0/codex-usage`, and the Keychain account `hinson0.codex-usage`.
-- Produces: version `0.3.0 (3)`, GitHub secret `SPARKLE_PRIVATE_KEY`, enabled future automatic releases, and public release `v0.3.0`.
+- Produces: version `0.4.0 (4)`, GitHub secret `SPARKLE_PRIVATE_KEY`, enabled future automatic releases, and public release `v0.4.0`.
 
 - [ ] **Step 1: Make the packaging version assertion fail**
 
-Change only `Tests/PackagingTests.sh` to expect short version `0.3.0` and build
-number `3`.
+Change only `Tests/PackagingTests.sh` to expect short version `0.4.0` and build
+number `4`.
 
 Run: `Tests/PackagingTests.sh`
 
-Expected: FAIL because the bundle still contains `0.2.0 (2)`.
+Expected: FAIL because the merged bundle still contains `0.3.0 (3)`.
 
 - [ ] **Step 2: Bump the single version source and update docs**
 
-Change the two plist values to `0.3.0` and `3`. Update both READMEs with:
+Change the two plist values to `0.4.0` and `4`. Update both READMEs with:
 
 - a “Download” link to `releases/latest`;
 - the DMG/manual and ZIP/Sparkle roles;
@@ -703,7 +703,7 @@ Expected: exit status 0 and no warning text.
 
 Run: `Tests/PackagingTests.sh`
 
-Expected: packaging checks pass for `0.3.0 (3)`.
+Expected: packaging checks pass for `0.4.0 (4)`.
 
 Run: `codesign --verify --deep --strict dist/CodexUsage.app`
 
@@ -765,7 +765,7 @@ run_id="$(gh run list --workflow release.yml --limit 1 --repo hinson0/codex-usag
 gh run watch "$run_id" --repo hinson0/codex-usage --exit-status
 ```
 
-Expected: tag `v0.3.0` and one published GitHub Release are created at the
+Expected: tag `v0.4.0` and one published GitHub Release are created at the
 verified `main` commit.
 
 - [ ] **Step 8: Verify public downloads and stable update feed**
@@ -773,14 +773,14 @@ verified `main` commit.
 Run:
 
 ```bash
-gh release view v0.3.0 --repo hinson0/codex-usage --json tagName,isDraft,isPrerelease,url,assets
+gh release view v0.4.0 --repo hinson0/codex-usage --json tagName,isDraft,isPrerelease,url,assets
 curl -fL https://github.com/hinson0/codex-usage/releases/latest/download/appcast.xml -o /tmp/codex-usage-appcast.xml
 xmllint --noout /tmp/codex-usage-appcast.xml
 ```
 
 Expected: the release is neither draft nor prerelease, all four named assets
 exist, the stable appcast URL resolves, and the enclosure URL references
-`CodexUsage-v0.3.0-macOS.zip` under immutable tag `v0.3.0`.
+`CodexUsage-v0.4.0-macOS.zip` under immutable tag `v0.4.0`.
 
 - [ ] **Step 9: Final whole-change verification**
 
@@ -791,4 +791,4 @@ Expected: clean `main` synchronized with `origin/main`.
 Run: `open dist/CodexUsage.app`
 
 Expected: the compact popover shows the localized update row, Light/Dark still
-affects only the popover, and checking on `0.3.0` reports no newer update.
+affects only the popover, and checking on `0.4.0` reports no newer update.

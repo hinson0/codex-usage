@@ -37,23 +37,51 @@ struct PreferencesLocalizationControllerTests {
     }
 
     @Test
-    func preferencesPersistSelectionsAndLatestReset() throws {
+    func preferencesPersistAtMostThreeResetRecordsNewestFirst() throws {
         let context = makeDefaults()
         defer { context.defaults.removePersistentDomain(forName: context.name) }
         let store = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
-        let record = LastResetRecord(
-            attemptedAt: Date(timeIntervalSince1970: 123),
-            result: .outcome(.reset)
-        )
+        let records = (1...4).map { index in
+            LastResetRecord(
+                attemptedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                result: .outcome(.reset)
+            )
+        }
 
         store.appearance = .dark
         store.language = .english
-        try store.saveLastReset(record)
+        for record in records {
+            try store.saveLastReset(record)
+        }
 
         let reloaded = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
         #expect(reloaded.appearance == .dark)
         #expect(reloaded.language == .english)
-        #expect(reloaded.lastReset == record)
+        #expect(reloaded.resetHistory.map(\.attemptedAt) == [
+            Date(timeIntervalSince1970: 4),
+            Date(timeIntervalSince1970: 3),
+            Date(timeIntervalSince1970: 2),
+        ])
+        #expect(reloaded.lastReset == records[3])
+    }
+
+    @Test
+    func preferencesMigratesLegacySingleResetRecordIntoHistory() throws {
+        let context = makeDefaults()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let legacyRecord = LastResetRecord(
+            attemptedAt: Date(timeIntervalSince1970: 123),
+            result: .outcome(.alreadyRedeemed)
+        )
+        context.defaults.set(
+            try JSONEncoder().encode(legacyRecord),
+            forKey: "test.lastReset"
+        )
+
+        let store = PreferencesStore(defaults: context.defaults, keyPrefix: "test")
+
+        #expect(store.resetHistory == [legacyRecord])
+        #expect(store.lastReset == legacyRecord)
     }
 
     @Test
@@ -68,6 +96,7 @@ struct PreferencesLocalizationControllerTests {
 
         #expect(store.appearance == .light)
         #expect(store.language == .english)
+        #expect(store.resetHistory.isEmpty)
         #expect(store.lastReset == nil)
     }
 
@@ -137,6 +166,10 @@ struct PreferencesLocalizationControllerTests {
             attemptedAt: Date(timeIntervalSince1970: 456),
             result: .outcome(.reset)
         ))
+        #expect(controller.resetHistory == [LastResetRecord(
+            attemptedAt: Date(timeIntervalSince1970: 456),
+            result: .outcome(.reset)
+        )])
         context.defaults.removePersistentDomain(forName: context.name)
     }
 
