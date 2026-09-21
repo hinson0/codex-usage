@@ -60,6 +60,9 @@ draft_script = steps.fetch(draft_index).fetch("run")
 raise "draft creation missing" unless draft_script.include?("gh release create") && draft_script.include?("--draft")
 raise "immutable tag check missing" unless draft_script.include?("git ls-remote")
 raise "draft target check missing" unless draft_script.include?("target_commitish") && draft_script.include?("GITHUB_SHA")
+create_offset = draft_script.index("gh release create")
+poll_offset = draft_script.index("for visibility_attempt")
+raise "new draft is not polled for API visibility" unless create_offset && poll_offset && create_offset < poll_offset
 raise "asset replacement is forbidden" if draft_script.include?("--clobber")
 
 publish_script = steps.fetch(publish_index).fetch("run")

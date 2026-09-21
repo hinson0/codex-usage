@@ -52,7 +52,7 @@ Codex 73%(2 次)   当前有 2 次可用 reset
 - `CodexUsage-vX.Y.Z-macOS.dmg` 给人手动安装，打开后拖进“应用程序”即可。
 - `CodexUsage-vX.Y.Z-macOS.zip` 是 Sparkle 在 App 内更新时使用的同一份签名归档。
 
-Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.4.2`
+Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.4.3`
 是首个支持 Sparkle 的版本，需要先手动安装；后续版本可通过“检查更新…”或后台
 定时检查发现，并且不会静默强制安装。
 

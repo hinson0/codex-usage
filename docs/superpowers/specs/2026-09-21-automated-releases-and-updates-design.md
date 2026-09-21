@@ -38,10 +38,10 @@ update is installed. Updates will be authenticated with a dedicated EdDSA key.
 push to `main` that changes the plist, with `workflow_dispatch` available for a
 controlled retry.
 
-For short version `0.4.2`, the workflow targets tag `v0.4.2` and produces:
+For short version `0.4.3`, the workflow targets tag `v0.4.3` and produces:
 
-- `CodexUsage-v0.4.2-macOS.dmg`
-- `CodexUsage-v0.4.2-macOS.zip`
+- `CodexUsage-v0.4.3-macOS.dmg`
+- `CodexUsage-v0.4.3-macOS.zip`
 - `SHA256SUMS`
 - `appcast.xml`
 
@@ -95,8 +95,8 @@ while Sparkle cannot start another check. Its row label is provided by the
 existing `LocalizationCatalog` in English and Simplified Chinese. Sparkle’s own
 standard dialogs use the framework’s macOS-selected localization.
 
-The current published line has no updater, so `0.4.2` is the first manually
-installed Sparkle-enabled version. Releases after `0.4.2` can update it through
+The current published line has no updater, so `0.4.3` is the first manually
+installed Sparkle-enabled version. Releases after `0.4.3` can update it through
 the appcast.
 
 ## Appcast and signing keys
@@ -160,7 +160,7 @@ attached to the latest non-prerelease GitHub Release.
 ### Workflow verification
 
 Before the first public release, the workflow runs through `workflow_dispatch`
-in a non-publishing validation mode. After merge, the `0.4.2` plist change
+in a non-publishing validation mode. After merge, the `0.4.3` plist change
 triggers the real release, and the published assets, checksums, stable appcast
 URL, and Sparkle probe are checked from their public URLs.
 
@@ -169,7 +169,7 @@ URL, and Sparkle probe are checked from their public URLs.
 This is backward-compatible user-visible functionality. During implementation,
 `main` independently advanced to `0.3.0 (3)`, so this feature first bumped the
 minor version; the initial validation exposed a full-Xcode portability bug, so
-the corrected release is `CFBundleShortVersionString` `0.4.2` and
-`CFBundleVersion` `6`. Later release-pipeline or updater bug fixes
+the corrected release is `CFBundleShortVersionString` `0.4.3` and
+`CFBundleVersion` `7`. Later release-pipeline or updater bug fixes
 increment the patch version and build number under the repository’s existing
 rules.

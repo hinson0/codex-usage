@@ -111,11 +111,20 @@ jobs:
               --title "Codex Usage $VERSION" \
               --generate-notes \
               --draft
-            release_json="$(
-              gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-                --jq ".[] | select(.tag_name == \"$TAG\")" \
-                | head -n 1
-            )"
+            release_json=""
+            for visibility_attempt in 1 2 3 4 5 6 7 8 9 10; do
+              release_json="$(
+                gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+                  --jq ".[] | select(.tag_name == \"$TAG\")" \
+                  | head -n 1
+              )"
+              [[ -z "$release_json" ]] || break
+              sleep 2
+            done
+            [[ -n "$release_json" ]] || {
+              echo "Draft release $TAG did not become visible through the API." >&2
+              exit 1
+            }
           fi
 
           [[ "$(jq -r '.draft' <<<"$release_json")" == "true" ]] || {
