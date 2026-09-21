@@ -82,9 +82,9 @@ The major components are:
    - Never stores credentials, account identifiers, or reset credit identifiers.
 
 5. **MenuBarApplication**
-   - Creates an `NSStatusItem` and `NSMenu`.
-   - Updates the title and menu from controller state.
-   - Presents an `NSAlert` confirmation before consuming a reset.
+   - Creates a SwiftUI `MenuBarExtra` using window-style content.
+   - Updates the status title and popover from controller state.
+   - Presents a SwiftUI confirmation alert before consuming a reset.
    - Applies the selected appearance to the status-menu UI without changing the system-wide macOS setting.
    - Resolves the selected language at runtime and updates every visible string without relaunching.
    - Uses `LSUIElement=true` in the packaged app so it has no Dock icon.
@@ -137,27 +137,27 @@ Failure to locate a binary is shown as an actionable menu error rather than term
 
 ### Selected Visual Direction
 
-The selected design is the compact horizontal-usage-bar direction shown in the project reference image at `docs/images/codex-usage-light-dark.png`.
+The selected design is the integrated-preferences-footer direction shown in the project reference image at `docs/images/codex-usage-integrated-footer.png`.
 
-- The popover uses a thin horizontal bar for the primary Codex remaining percentage.
-- Information is presented as compact native rows with lightweight separators.
+- The popover is 432 points wide and uses a thin horizontal bar for the primary Codex remaining percentage.
+- Information uses a 20-point outer inset, stronger typography hierarchy, and lightweight separators.
 - Blue is reserved for the usage bar and enabled reset action.
 - Light and dark appearances keep the same hierarchy, spacing, and controls.
 - The native material, text, separators, and status-bar treatment adapt to the selected appearance.
+- Auxiliary quota buckets such as `base_model_inference` / `gpt-reserve` never appear in the popover.
+- Appearance and language form one subtle two-cell preferences footer below reset status rather than interrupting the usage flow.
 
 ### Menu
 
 The menu is ordered as follows:
 
 1. Primary Codex allowance, remaining percentage, and next automatic reset time.
-2. Additional returned quota buckets, when present, shown as read-only details.
-3. Last successful refresh time or current error.
-4. Reset action or disabled **“当前没有可用 reset”**.
-5. Last reset time and result, or **“尚未使用过 reset”**.
-6. **“外观”** submenu with **“跟随系统”**, **“浅色”**, and **“深色”**; the active choice has a checkmark.
-7. **“语言”** submenu with **“跟随系统”**, **“English”**, and **“简体中文”**; the active choice has a checkmark.
-8. **“立即刷新”**.
-9. **“退出”**.
+2. Current error, only when present.
+3. Reset action or disabled **“当前没有可用 reset”**.
+4. Last reset time and result, or **“尚未使用过 reset”**.
+5. A unified two-cell preferences footer: **“外观 · 当前值”** and **“语言 · 当前值”**, each opening its native menu with the active option checked.
+6. **“立即刷新”**.
+7. **“退出”**.
 
 Dates use the effective app language and current system time zone.
 
@@ -238,6 +238,6 @@ The minimum deployment target is macOS 13. The bundle identifier is `local.codex
 - Reset attempts use an idempotency key, refresh usage afterward, and display the persisted latest time and result.
 - The appearance submenu switches between Follow System, Light, and Dark, persists the choice, and does not alter the system-wide appearance.
 - The language submenu switches between Follow System, English, and Simplified Chinese at runtime and persists the choice.
-- The root README presents matching English and Simplified Chinese project information, embeds the selected light/dark design image, and labels unfinished functionality honestly.
+- `README.md` is the default English landing page; `README.zh-CN.md` contains the matching Simplified Chinese version, and both embed the selected light/dark design image and label unfinished functionality honestly.
 - Network, authentication, protocol, and missing-binary errors remain visible and recoverable.
 - All tests pass, the release binary compiles, the `.app` is signed, and the launch smoke test succeeds on the inspected Mac.
