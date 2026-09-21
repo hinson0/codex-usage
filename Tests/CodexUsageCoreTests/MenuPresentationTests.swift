@@ -169,6 +169,35 @@ struct MenuPresentationTests {
         #expect(AppAppearance.dark.nativeAppearancePolicy.applicationName == nil)
         #expect(AppAppearance.dark.nativeAppearancePolicy.popoverName == "NSAppearanceNameDarkAqua")
     }
+
+    @Test
+    func updateActionRelocalizesAndFollowsInjectedAvailability() {
+        let english = MenuPresentation(
+            snapshot: nil,
+            lastReset: nil,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: nil,
+            appearance: .light,
+            language: .english,
+            canCheckForUpdates: true
+        )
+        let chinese = MenuPresentation(
+            snapshot: nil,
+            lastReset: nil,
+            isRefreshing: false,
+            isRedeeming: false,
+            error: nil,
+            appearance: .light,
+            language: .zhHans,
+            canCheckForUpdates: false
+        )
+
+        #expect(english.checkForUpdatesTitle == "Check for Updates…")
+        #expect(english.isUpdateEnabled)
+        #expect(chinese.checkForUpdatesTitle == "检查更新…")
+        #expect(!chinese.isUpdateEnabled)
+    }
 }
 
 private func makePresentationSnapshot(

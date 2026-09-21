@@ -17,6 +17,7 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case simplifiedChinese
     case english
     case refreshNow
+    case checkForUpdates
     case quit
     case confirmResetTitle
     case confirmResetMessage
@@ -55,6 +56,7 @@ public enum LocalizationCatalog {
             .simplifiedChinese: "简体中文",
             .english: "English",
             .refreshNow: "立即刷新",
+            .checkForUpdates: "检查更新…",
             .quit: "退出",
             .confirmResetTitle: "使用 Codex reset？",
             .confirmResetMessage: "这会立即消耗 1 次可用 reset，且无法撤销。",
@@ -90,6 +92,7 @@ public enum LocalizationCatalog {
             .simplifiedChinese: "简体中文",
             .english: "English",
             .refreshNow: "Refresh Now",
+            .checkForUpdates: "Check for Updates…",
             .quit: "Quit",
             .confirmResetTitle: "Use a Codex reset?",
             .confirmResetMessage: "This immediately consumes 1 available reset and cannot be undone.",

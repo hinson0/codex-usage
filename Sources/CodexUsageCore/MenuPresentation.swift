@@ -21,6 +21,7 @@ public struct MenuPresentation: Sendable {
     public let appearance: AppAppearance
     public let language: AppLanguage
     public let timeZone: TimeZone
+    public let canCheckForUpdates: Bool
 
     public init(
         snapshot: UsageSnapshot?,
@@ -30,7 +31,8 @@ public struct MenuPresentation: Sendable {
         error: UsageDisplayError?,
         appearance: AppAppearance,
         language: AppLanguage,
-        timeZone: TimeZone = .current
+        timeZone: TimeZone = .current,
+        canCheckForUpdates: Bool = false
     ) {
         self.snapshot = snapshot
         self.lastReset = lastReset
@@ -40,6 +42,7 @@ public struct MenuPresentation: Sendable {
         self.appearance = appearance
         self.language = language
         self.timeZone = timeZone
+        self.canCheckForUpdates = canCheckForUpdates
     }
 
     public var remainingPercent: Int? {
@@ -65,6 +68,14 @@ public struct MenuPresentation: Sendable {
 
     public var isResetEnabled: Bool {
         (snapshot?.availableResetCount ?? 0) > 0 && !isRedeeming
+    }
+
+    public var checkForUpdatesTitle: String {
+        text(.checkForUpdates)
+    }
+
+    public var isUpdateEnabled: Bool {
+        canCheckForUpdates
     }
 
     public var availableResetsText: String? {

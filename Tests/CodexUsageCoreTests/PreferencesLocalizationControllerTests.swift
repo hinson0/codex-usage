@@ -18,6 +18,8 @@ struct PreferencesLocalizationControllerTests {
         #expect(LocalizationCatalog.keys(for: .zhHans) == LocalizationCatalog.keys(for: .english))
         #expect(LocalizationCatalog.string(.noResetsAvailable, language: .zhHans) == "当前没有可用 reset")
         #expect(LocalizationCatalog.string(.noResetsAvailable, language: .english) == "No resets available")
+        #expect(LocalizationCatalog.string(.checkForUpdates, language: .zhHans) == "检查更新…")
+        #expect(LocalizationCatalog.string(.checkForUpdates, language: .english) == "Check for Updates…")
     }
 
     @Test
