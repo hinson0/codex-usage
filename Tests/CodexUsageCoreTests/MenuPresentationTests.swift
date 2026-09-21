@@ -5,65 +5,148 @@ import Testing
 @Suite
 struct MenuPresentationTests {
     @Test
-    func zeroResetChinesePresentationUsesDisabledCopyAndNoSuffix() {
+    func weeklyOnlyPresentationUsesOnePercentageAndHidesZeroResetCount() {
         let presentation = MenuPresentation(
             snapshot: makePresentationSnapshot(usedPercent: 0, resetCount: 0),
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .light,
             language: .zhHans
         )
 
         #expect(presentation.statusTitle == "Codex 100%")
+        #expect(presentation.usagePercentText == "100%")
         #expect(presentation.remainingPercent == 100)
-        #expect(presentation.resetActionTitle == "当前没有可用 reset")
-        #expect(!presentation.isResetEnabled)
-        #expect(presentation.lastResetText == "尚未使用过 reset")
+        #expect(presentation.availableResetsText == nil)
+        #expect(presentation.fiveHourStatusText == "无限制")
     }
 
     @Test
-    func positiveResetEnglishPresentationEnablesActionAndLocalizesTitle() {
+    func positiveResetCountIsReadOnlyCompactTextAndStatusSuffix() {
         let presentation = MenuPresentation(
             snapshot: makePresentationSnapshot(usedPercent: 27, resetCount: 2),
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .dark,
             language: .english
         )
 
         #expect(presentation.statusTitle == "Codex 73% (2 resets)")
-        #expect(presentation.resetActionTitle == "Use 1 reset…")
-        #expect(presentation.isResetEnabled)
-        #expect(presentation.availableResetsText == "Available resets: 2")
+        #expect(presentation.availableResetsText == "2 resets")
     }
 
     @Test
-    func redeemingDisablesResetAction() {
+    func oneEnglishResetUsesSingularReadOnlyCopy() {
         let presentation = MenuPresentation(
             snapshot: makePresentationSnapshot(usedPercent: 27, resetCount: 1),
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: true,
             error: nil,
-            appearance: .system,
+            appearance: .light,
             language: .english
         )
 
-        #expect(!presentation.isResetEnabled)
-        #expect(presentation.resetActionTitle == "Using reset…")
+        #expect(presentation.availableResetsText == "1 reset")
+    }
+
+    @Test
+    func dualWindowsShowFiveHourThenLongerRemainingWhileProgressTracksLongerWindow() {
+        let presentation = MenuPresentation(
+            snapshot: makeDualWindowSnapshot(
+                fiveHourUsedPercent: 20,
+                longerUsedPercent: 6,
+                resetCount: 2
+            ),
+            isRefreshing: false,
+            error: nil,
+            appearance: .light,
+            language: .english,
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+
+        #expect(presentation.statusTitle == "Codex 80%-94% (2 resets)")
+        #expect(presentation.usagePercentText == "80% - 94%")
+        #expect(presentation.remainingPercent == 94)
+        #expect(presentation.fiveHourStatusText == nil)
+        #expect(presentation.nextResetText == "Next reset: Jan 15, 2027 at 8:00 AM")
+    }
+
+    @Test
+    func missingLongerWindowPercentageDoesNotReuseFiveHourForProgress() {
+        let presentation = MenuPresentation(
+            snapshot: makeDualWindowSnapshot(
+                fiveHourUsedPercent: 20,
+                longerUsedPercent: nil,
+                resetCount: 0
+            ),
+            isRefreshing: false,
+            error: nil,
+            appearance: .light,
+            language: .english
+        )
+
+        #expect(presentation.remainingPercent == nil)
+        #expect(presentation.statusTitle == "Codex 80%")
+    }
+
+    @Test
+    func twoFiveHourWindowsNeverInventALongerWindow() {
+        let snapshot = makeSnapshot(
+            primary: RateLimitWindow(
+                usedPercent: 20,
+                windowDurationMins: 300,
+                resetsAt: 1_790_000_000
+            ),
+            secondary: RateLimitWindow(
+                usedPercent: 6,
+                windowDurationMins: 300,
+                resetsAt: 1_800_000_000
+            )
+        )
+        let presentation = MenuPresentation(
+            snapshot: snapshot,
+            isRefreshing: false,
+            error: nil,
+            appearance: .light,
+            language: .english
+        )
+
+        #expect(presentation.statusTitle == "Codex 80%")
+        #expect(presentation.usagePercentText == "80%")
+        #expect(presentation.remainingPercent == 80)
+    }
+
+    @Test
+    func windowOrderingUsesDurationInsteadOfPrimarySecondarySlot() {
+        let snapshot = makeSnapshot(
+            primary: RateLimitWindow(
+                usedPercent: 6,
+                windowDurationMins: 10_080,
+                resetsAt: 1_800_000_000
+            ),
+            secondary: RateLimitWindow(
+                usedPercent: 20,
+                windowDurationMins: 300,
+                resetsAt: 1_790_000_000
+            )
+        )
+        let presentation = MenuPresentation(
+            snapshot: snapshot,
+            isRefreshing: false,
+            error: nil,
+            appearance: .light,
+            language: .english
+        )
+
+        #expect(presentation.statusTitle == "Codex 80%-94%")
+        #expect(presentation.usagePercentText == "80% - 94%")
+        #expect(presentation.remainingPercent == 94)
     }
 
     @Test
     func selectedAppearanceAndLanguageHaveExactlyOneCheckmark() {
         let presentation = MenuPresentation(
             snapshot: nil,
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .light,
             language: .english
@@ -76,108 +159,24 @@ struct MenuPresentationTests {
     }
 
     @Test
-    func latestResetResultAndErrorAreLocalized() {
-        let presentation = MenuPresentation(
-            snapshot: makePresentationSnapshot(usedPercent: 50, resetCount: 0),
-            lastReset: LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_000),
-                result: .outcome(.alreadyRedeemed)
-            ),
-            isRefreshing: false,
-            isRedeeming: false,
-            error: .message("offline"),
-            appearance: .system,
-            language: .english,
-            timeZone: TimeZone(secondsFromGMT: 0)!
-        )
-
-        #expect(presentation.lastResetText.contains("Already redeemed"))
-        #expect(presentation.errorText == "Error: offline")
-        #expect(presentation.nextResetText?.hasPrefix("Next reset: ") == true)
-    }
-
-    @Test
-    func resetHistoryRowsShowOnlyTheNewestThreeRecords() {
-        let records = [
-            LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_003),
-                result: .outcome(.reset)
-            ),
-            LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_002),
-                result: .outcome(.alreadyRedeemed)
-            ),
-            LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_001),
-                result: .outcome(.noCredit)
-            ),
-            LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_000),
-                result: .outcome(.nothingToReset)
-            ),
-        ]
-        let presentation = MenuPresentation(
-            snapshot: nil,
-            lastReset: nil,
-            resetHistory: records,
-            isRefreshing: false,
-            isRedeeming: false,
-            error: nil,
-            appearance: .light,
-            language: .english,
-            timeZone: TimeZone(secondsFromGMT: 0)!
-        )
-
-        #expect(presentation.resetHistoryTexts.count == 3)
-        #expect(presentation.resetHistoryTexts.first?.contains("Successful") == true)
-        #expect(presentation.resetHistoryTexts.dropFirst().first?.contains("Already redeemed") == true)
-        #expect(presentation.resetHistoryTexts.last?.contains("No reset credit available") == true)
-        #expect(!presentation.resetHistoryTexts.joined().contains("Nothing to reset"))
-    }
-
-    @Test
     func typedOperationalErrorsRelocalizeWithTheSelectedLanguage() {
         let chinese = MenuPresentation(
             snapshot: nil,
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: .authenticationRequired,
             appearance: .light,
             language: .zhHans
         )
         let english = MenuPresentation(
             snapshot: nil,
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: .binaryMissing,
-            appearance: .system,
+            appearance: .dark,
             language: .english
         )
 
         #expect(chinese.errorText == "请先在 Codex 中登录")
         #expect(english.errorText == "Codex command-line tool not found")
-    }
-
-    @Test
-    func persistedResetFailureRelocalizesInsteadOfKeepingDeadCopy() {
-        let presentation = MenuPresentation(
-            snapshot: nil,
-            lastReset: LastResetRecord(
-                attemptedAt: Date(timeIntervalSince1970: 1_795_000_000),
-                result: .failure(.timeout)
-            ),
-            isRefreshing: false,
-            isRedeeming: false,
-            error: nil,
-            appearance: .system,
-            language: .zhHans,
-            timeZone: TimeZone(secondsFromGMT: 0)!
-        )
-
-        #expect(presentation.lastResetText.contains("请求超时"))
-        #expect(!presentation.lastResetText.contains("Request timed out"))
     }
 
     @Test
@@ -188,9 +187,7 @@ struct MenuPresentationTests {
                 resetCount: 0,
                 includeAuxiliaryBucket: true
             ),
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .system,
             language: .zhHans
@@ -213,9 +210,7 @@ struct MenuPresentationTests {
     func updateActionRelocalizesAndFollowsInjectedAvailability() {
         let english = MenuPresentation(
             snapshot: nil,
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .light,
             language: .english,
@@ -223,9 +218,7 @@ struct MenuPresentationTests {
         )
         let chinese = MenuPresentation(
             snapshot: nil,
-            lastReset: nil,
             isRefreshing: false,
-            isRedeeming: false,
             error: nil,
             appearance: .light,
             language: .zhHans,
@@ -272,10 +265,57 @@ private func makePresentationSnapshot(
             rateLimitsByLimitId: includeAuxiliaryBucket
                 ? ["codex": codex, "base_model_inference": auxiliary]
                 : nil,
-            rateLimitResetCredits: ResetCreditsSummary(
-                availableCount: resetCount,
-                credits: resetCount > 0 ? [ResetCredit(id: "credit", status: "available")] : []
-            )
+            rateLimitResetCredits: ResetCreditsSummary(availableCount: resetCount)
+        ),
+        refreshedAt: Date(timeIntervalSince1970: 1_795_000_000)
+    )
+}
+
+private func makeDualWindowSnapshot(
+    fiveHourUsedPercent: Double,
+    longerUsedPercent: Double?,
+    resetCount: Int
+) -> UsageSnapshot {
+    let codex = RateLimitBucket(
+        limitId: "codex",
+        limitName: nil,
+        normalModelSlug: nil,
+        primary: RateLimitWindow(
+            usedPercent: fiveHourUsedPercent,
+            windowDurationMins: 300,
+            resetsAt: 1_790_000_000
+        ),
+        secondary: RateLimitWindow(
+            usedPercent: longerUsedPercent,
+            windowDurationMins: 10_080,
+            resetsAt: 1_800_000_000
+        )
+    )
+    return UsageSnapshot(
+        response: RateLimitsResponse(
+            rateLimits: codex,
+            rateLimitsByLimitId: nil,
+            rateLimitResetCredits: ResetCreditsSummary(availableCount: resetCount)
+        ),
+        refreshedAt: Date(timeIntervalSince1970: 1_795_000_000)
+    )
+}
+
+private func makeSnapshot(
+    primary: RateLimitWindow?,
+    secondary: RateLimitWindow?
+) -> UsageSnapshot {
+    UsageSnapshot(
+        response: RateLimitsResponse(
+            rateLimits: RateLimitBucket(
+                limitId: "codex",
+                limitName: nil,
+                normalModelSlug: nil,
+                primary: primary,
+                secondary: secondary
+            ),
+            rateLimitsByLimitId: nil,
+            rateLimitResetCredits: ResetCreditsSummary(availableCount: 0)
         ),
         refreshedAt: Date(timeIntervalSince1970: 1_795_000_000)
     )

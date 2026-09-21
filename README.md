@@ -2,7 +2,7 @@
 
 # Codex Usage
 
-**Codex usage and banked resets, right in your macOS menu bar.**
+**Codex usage windows and available reset count, right in your macOS menu bar.**
 
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#requirements)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#build-and-run)
@@ -13,7 +13,7 @@
 
 [**Download the latest release**](https://github.com/hinson0/codex-usage/releases/latest)
 
-<img src="docs/images/codex-usage-compact-no-system.png" alt="Compact Codex Usage menu bar popover in light and dark appearances" width="100%">
+<img src="docs/images/codex-usage-dual-window.png" alt="Compact Codex Usage menu bar popover with weekly allowance and unlimited five-hour status" width="100%">
 
 <sub>Selected compact design target in light and dark appearances.</sub>
 
@@ -23,22 +23,22 @@
 
 ### About
 
-Codex Usage is a lightweight, native macOS menu bar utility for checking your remaining Codex allowance without opening a dashboard. When your account has banked resets, the available count appears beside the percentage and you can redeem one from the popover after a confirmation.
+Codex Usage is a lightweight, native macOS menu bar utility for checking your remaining Codex allowance without opening a dashboard. It reads the official five-hour and longer-window data when available, and shows banked reset count as read-only information.
 
 The status title stays deliberately compact:
 
 ```text
-Codex 100%             No reset available
-Codex 73% (2 resets)  Two resets available
+Codex 99%                    Longer window only; five-hour use is unlimited
+Codex 82%-94%                Five-hour remaining, then longer-window remaining
+Codex 82%-94% (2 resets)     Two banked resets available
 ```
 
 ### Target experience
 
-- Primary Codex allowance with a compact horizontal progress bar.
-- Reset count shown only when one or more resets are available.
-- Clear “no reset available” state when the count is zero.
-- Confirm-before-redeem reset action with idempotent retry protection.
-- The three most recent reset attempts stored locally, newest first.
+- Five-hour and longer-window remaining percentages when both limits exist.
+- A clear “Unlimited” five-hour row when the official response has no five-hour window.
+- Longer-window allowance with a compact horizontal progress bar and reset time.
+- Read-only reset count shown only when one or more resets are available.
 - Automatic refresh on launch, every 60 seconds, and when the popover opens.
 - Light and Dark appearances.
 - English and Simplified Chinese languages, defaulting to English.
@@ -63,10 +63,9 @@ background checks. Updates are never installed silently.
 
 - Uses the official local Codex App Server and your existing Codex sign-in.
 - Does not read, copy, or persist ChatGPT access tokens.
-- Reset history contains only attempts made through this app; the App Server does not expose ChatGPT's web history.
+- Does not consume resets or save reset-attempt history.
 - Communicates with a local child process over pipes; it does not open a listening network port.
-- Never redeems a reset automatically.
-- Automated tests never consume a real reset.
+- Automated verification is read-only and never consumes a real reset.
 
 ### Build and run
 
@@ -96,4 +95,4 @@ Released under the [MIT License](LICENSE). You are free to use, modify, redistri
 
 ### Documentation
 
-- [Product design and technical specification](docs/superpowers/specs/2026-09-20-codex-usage-menubar-design.md)
+- [Design QA](design-qa.md)

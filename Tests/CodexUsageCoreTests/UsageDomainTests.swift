@@ -13,7 +13,7 @@ struct UsageDomainTests {
                 "codex": makeBucket(id: "codex", used: 27),
                 "alpha": makeBucket(id: "alpha", used: 50),
             ],
-            rateLimitResetCredits: ResetCreditsSummary(availableCount: 2, credits: [])
+            rateLimitResetCredits: ResetCreditsSummary(availableCount: 2)
         )
 
         let snapshot = UsageSnapshot(response: response, refreshedAt: Date(timeIntervalSince1970: 100))
@@ -54,20 +54,50 @@ struct UsageDomainTests {
 
     @Test
     func missingPercentageHasPlaceholderTitleWithoutResetSuffix() {
-        #expect(UsageFormatting.statusTitle(remainingPercent: nil, availableResets: 2, language: .english) == "Codex --%")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: nil,
+            longerRemainingPercent: nil,
+            availableResets: 2,
+            language: .english
+        ) == "Codex --%")
     }
 
     @Test
     func zeroResetsHideSuffixInBothLanguages() {
-        #expect(UsageFormatting.statusTitle(remainingPercent: 100, availableResets: 0, language: .zhHans) == "Codex 100%")
-        #expect(UsageFormatting.statusTitle(remainingPercent: 100, availableResets: 0, language: .english) == "Codex 100%")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: nil,
+            longerRemainingPercent: 100,
+            availableResets: 0,
+            language: .zhHans
+        ) == "Codex 100%")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: 80,
+            longerRemainingPercent: 100,
+            availableResets: 0,
+            language: .english
+        ) == "Codex 80%-100%")
     }
 
     @Test
     func positiveResetsUseLocalizedSuffix() {
-        #expect(UsageFormatting.statusTitle(remainingPercent: 73, availableResets: 2, language: .zhHans) == "Codex 73%(2 次)")
-        #expect(UsageFormatting.statusTitle(remainingPercent: 73, availableResets: 1, language: .english) == "Codex 73% (1 reset)")
-        #expect(UsageFormatting.statusTitle(remainingPercent: 73, availableResets: 2, language: .english) == "Codex 73% (2 resets)")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: 80,
+            longerRemainingPercent: 73,
+            availableResets: 2,
+            language: .zhHans
+        ) == "Codex 80%-73%(2 次)")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: nil,
+            longerRemainingPercent: 73,
+            availableResets: 1,
+            language: .english
+        ) == "Codex 73% (1 reset)")
+        #expect(UsageFormatting.statusTitle(
+            fiveHourRemainingPercent: nil,
+            longerRemainingPercent: 73,
+            availableResets: 2,
+            language: .english
+        ) == "Codex 73% (2 resets)")
     }
 
     @Test
@@ -90,22 +120,6 @@ struct UsageDomainTests {
         #expect(snapshot.availableResetCount == 0)
     }
 
-    @Test
-    func decodesEveryResetOutcomeIncludingUnknownValues() throws {
-        let cases: [(raw: String, expected: ResetOutcome)] = [
-            ("reset", .reset),
-            ("alreadyRedeemed", .alreadyRedeemed),
-            ("nothingToReset", .nothingToReset),
-            ("noCredit", .noCredit),
-            ("futureOutcome", .unknown("futureOutcome")),
-        ]
-
-        for item in cases {
-            let data = Data("{\"outcome\":\"\(item.raw)\"}".utf8)
-            let response = try JSONDecoder().decode(ConsumeResetResponse.self, from: data)
-            #expect(response.outcome == item.expected)
-        }
-    }
 }
 
 private func makeBucket(id: String, used: Double) -> RateLimitBucket {

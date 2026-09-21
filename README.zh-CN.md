@@ -2,7 +2,7 @@
 
 # Codex Usage
 
-**把 Codex 剩余用量和可用 reset，直接放进 macOS 状态栏。**
+**把 Codex 多周期剩余用量和可用 reset 次数，直接放进 macOS 状态栏。**
 
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](#环境要求)
 [![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)](#构建与运行)
@@ -13,7 +13,7 @@
 
 [**下载最新版本**](https://github.com/hinson0/codex-usage/releases/latest)
 
-<img src="docs/images/codex-usage-compact-no-system.png" alt="Codex Usage 紧凑型浅色与深色状态栏设计" width="100%">
+<img src="docs/images/codex-usage-dual-window.png" alt="Codex Usage 显示本周额度与 5 小时无限制状态的紧凑弹窗" width="100%">
 
 <sub>已选定的紧凑型浅色与深色设计。</sub>
 
@@ -23,22 +23,22 @@
 
 ### 项目简介
 
-Codex Usage 是一个轻量、原生的 macOS 状态栏工具。不用打开设置或用量页面，就能直接查看 Codex 剩余用量。账户存在可用 reset 时，状态栏会显示数量；点击后可在弹窗确认并使用一次 reset。
+Codex Usage 是一个轻量、原生的 macOS 状态栏工具。不用打开设置或用量页面，就能直接查看 Codex 剩余用量。App 会读取官方返回的 5 小时与长周期窗口；可用 reset 只显示次数，不提供兑换，也不保存操作历史。
 
 状态栏标题保持尽量短：
 
 ```text
-Codex 100%         当前没有可用 reset
-Codex 73%(2 次)   当前有 2 次可用 reset
+Codex 99%             只有本周额度，5 小时无限制
+Codex 82%-94%         依次为 5 小时、本周剩余
+Codex 82%-94%(2 次)  当前有 2 次可用 reset
 ```
 
 ### 目标功能
 
-- 使用紧凑的横向进度条展示主 Codex 配额。
-- 仅在 reset 数量大于零时显示次数。
-- reset 为零时明确显示“当前没有可用 reset”。
-- 使用 reset 前必须确认，并通过幂等重试避免重复消费。
-- 在本机保存最近 3 次 reset 尝试的时间和结果，最新记录优先。
+- 同时存在限制时，显示 5 小时与本周剩余百分比。
+- 官方未返回 5 小时窗口时，明确显示“无限制”。
+- 使用紧凑的横向进度条展示本周额度和重置时间。
+- reset 只读显示次数，并且仅在数量大于零时出现。
 - 启动时、每 60 秒以及打开弹窗时自动刷新。
 - 支持浅色和深色外观。
 - 支持 English 和简体中文界面，默认使用 English。
@@ -60,10 +60,9 @@ Release 还会附带 `SHA256SUMS` 和签名后的 `appcast.xml` 更新源。`0.4
 
 - 使用官方本地 Codex App Server 和已有的 Codex 登录状态。
 - 不读取、不复制、不保存 ChatGPT Token。
-- reset 历史仅包含通过本 App 发起的操作；App Server 不提供 ChatGPT 网页历史。
+- 不消费 reset，也不保存 reset 尝试历史。
 - 仅通过本机管道与子进程通信，不开放网络监听端口。
-- 永远不会自动使用 reset。
-- 自动化测试不会消费真实 reset。
+- 自动化验证完全只读，不会消费真实 reset。
 
 ### 构建与运行
 
@@ -92,4 +91,4 @@ open dist/CodexUsage.app
 
 ### 项目文档
 
-- [产品设计与技术规格](docs/superpowers/specs/2026-09-20-codex-usage-menubar-design.md)
+- [设计验收记录](design-qa.md)

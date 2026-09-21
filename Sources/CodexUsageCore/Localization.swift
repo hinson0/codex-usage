@@ -2,15 +2,13 @@ import Foundation
 
 public enum LocalizationKey: String, CaseIterable, Sendable {
     case codexRemaining
+    case fiveHourRemaining
+    case unlimited
     case nextReset
     case additionalLimits
     case lastRefresh
-    case noResetsAvailable
+    case availableReset
     case availableResets
-    case useOneReset
-    case lastReset
-    case resetHistory
-    case noResetHistory
     case appearance
     case light
     case dark
@@ -20,37 +18,24 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case refreshNow
     case checkForUpdates
     case quit
-    case confirmResetTitle
-    case confirmResetMessage
-    case confirm
-    case cancel
-    case resetInProgress
     case loading
     case loginRequired
     case binaryMissing
     case requestTimedOut
     case errorPrefix
-    case resetSucceeded
-    case resetAlreadyRedeemed
-    case resetNothingToReset
-    case resetNoCredit
-    case resetUnknown
-    case resetFailed
 }
 
 public enum LocalizationCatalog {
     private static let strings: [AppLanguage: [LocalizationKey: String]] = [
         .zhHans: [
             .codexRemaining: "Codex 剩余",
+            .fiveHourRemaining: "5 小时剩余",
+            .unlimited: "无限制",
             .nextReset: "下次重置：%@",
             .additionalLimits: "其他配额",
             .lastRefresh: "最近刷新：%@",
-            .noResetsAvailable: "当前没有可用 reset",
-            .availableResets: "可用 reset：%d 次",
-            .useOneReset: "使用 1 次 reset…",
-            .lastReset: "最近一次 reset：%@",
-            .resetHistory: "历史记录",
-            .noResetHistory: "尚未使用过 reset",
+            .availableReset: "%d 次 reset",
+            .availableResets: "%d 次 reset",
             .appearance: "外观",
             .light: "浅色",
             .dark: "深色",
@@ -60,34 +45,21 @@ public enum LocalizationCatalog {
             .refreshNow: "立即刷新",
             .checkForUpdates: "检查更新…",
             .quit: "退出",
-            .confirmResetTitle: "使用 Codex reset？",
-            .confirmResetMessage: "这会立即消耗 1 次可用 reset，且无法撤销。",
-            .confirm: "确认使用",
-            .cancel: "取消",
-            .resetInProgress: "正在使用 reset…",
             .loading: "正在读取 Codex 用量…",
             .loginRequired: "请先在 Codex 中登录",
             .binaryMissing: "找不到 Codex 命令行程序",
             .requestTimedOut: "请求超时，请重试",
             .errorPrefix: "错误：%@",
-            .resetSucceeded: "成功",
-            .resetAlreadyRedeemed: "已完成（重复请求）",
-            .resetNothingToReset: "当前没有可重置的配额窗口",
-            .resetNoCredit: "账户没有可用 reset",
-            .resetUnknown: "未知结果：%@",
-            .resetFailed: "失败：%@",
         ],
         .english: [
             .codexRemaining: "Codex remaining",
+            .fiveHourRemaining: "5-hour remaining",
+            .unlimited: "Unlimited",
             .nextReset: "Next reset: %@",
             .additionalLimits: "Other allowances",
             .lastRefresh: "Last refreshed: %@",
-            .noResetsAvailable: "No resets available",
-            .availableResets: "Available resets: %d",
-            .useOneReset: "Use 1 reset…",
-            .lastReset: "Last reset: %@",
-            .resetHistory: "History",
-            .noResetHistory: "No reset has been used yet",
+            .availableReset: "%d reset",
+            .availableResets: "%d resets",
             .appearance: "Appearance",
             .light: "Light",
             .dark: "Dark",
@@ -97,22 +69,11 @@ public enum LocalizationCatalog {
             .refreshNow: "Refresh Now",
             .checkForUpdates: "Check for Updates…",
             .quit: "Quit",
-            .confirmResetTitle: "Use a Codex reset?",
-            .confirmResetMessage: "This immediately consumes 1 available reset and cannot be undone.",
-            .confirm: "Use Reset",
-            .cancel: "Cancel",
-            .resetInProgress: "Using reset…",
             .loading: "Loading Codex usage…",
             .loginRequired: "Sign in to Codex first",
             .binaryMissing: "Codex command-line tool not found",
             .requestTimedOut: "Request timed out. Try again.",
             .errorPrefix: "Error: %@",
-            .resetSucceeded: "Successful",
-            .resetAlreadyRedeemed: "Already redeemed",
-            .resetNothingToReset: "Nothing to reset",
-            .resetNoCredit: "No reset credit available",
-            .resetUnknown: "Unknown result: %@",
-            .resetFailed: "Failed: %@",
         ],
     ]
 
@@ -150,18 +111,4 @@ public enum LocalizationCatalog {
         return formatter.string(from: date)
     }
 
-    public static func resetOutcome(_ outcome: ResetOutcome, language: AppLanguage) -> String {
-        switch outcome {
-        case .reset:
-            return string(.resetSucceeded, language: language)
-        case .alreadyRedeemed:
-            return string(.resetAlreadyRedeemed, language: language)
-        case .nothingToReset:
-            return string(.resetNothingToReset, language: language)
-        case .noCredit:
-            return string(.resetNoCredit, language: language)
-        case .unknown(let raw):
-            return format(.resetUnknown, language: language, raw)
-        }
-    }
 }
