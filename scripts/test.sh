@@ -12,9 +12,19 @@ else
   readonly testing_libraries_dir="$developer_dir/usr/lib"
 fi
 
+run_shell_contract_tests() {
+  "$repo_root/Tests/ReleaseScriptsTests.sh"
+  "$repo_root/Tests/ReleaseArtifactsTests.sh"
+  "$repo_root/Tests/ReleaseWorkflowTests.sh"
+  if [[ "${CODEX_USAGE_SKIP_RUNNER_SCRIPT_TEST:-0}" != "1" ]]; then
+    "$repo_root/Tests/TestRunnerScriptTests.sh"
+  fi
+}
+
 if [[ ! -d "$frameworks_dir/Testing.framework" ]]; then
-  echo "Testing.framework was not found in Command Line Tools." >&2
-  exit 1
+  swift test "$@"
+  run_shell_contract_tests
+  exit 0
 fi
 
 swift build --target CodexUsageCoreTests
@@ -39,6 +49,4 @@ swiftc \
 
 "$runner" "$@"
 
-"$repo_root/Tests/ReleaseScriptsTests.sh"
-"$repo_root/Tests/ReleaseArtifactsTests.sh"
-"$repo_root/Tests/ReleaseWorkflowTests.sh"
+run_shell_contract_tests
