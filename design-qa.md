@@ -32,7 +32,7 @@ The normalized side-by-side image compares the complete app-owned content at the
 
 - No actionable P0, P1, or P2 findings remain.
 - P3: the generated mock uses slightly larger display typography than native macOS controls. Keeping native metrics avoids cramped labels and preserves platform consistency.
-- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.1.2 (14)`, and the production scene remains a single `MenuBarExtra`.
+- P3 evidence limit: the temporary QA window shows a keyboard focus ring, disables Sparkle's update action, and omits the bundle version because it is not the packaged app. These are harness artifacts. Packaging tests verify version `1.1.3 (15)`, and the production scene remains a single `MenuBarExtra`.
 - The live account has no five-hour window, so the finite `x% - y%` popover state was not visually captured. Unit tests cover both window orders, missing percentages, duplicate 300-minute windows, and longer-window progress/reset selection.
 
 ## Comparison History
@@ -68,3 +68,5 @@ final result: passed
 - Corrected the intended behavior: startup, popover opening, and an independent five-hour task silently probe Sparkle for updates. Probes skip an active Sparkle session and do not depend on usage refresh completion.
 - Available updates display green `新版本` / `New Version`; the default action retains its normal color. Clicking still opens Sparkle's interactive update flow.
 - This supersedes the earlier availability-label wording. Existing screenshots predate this change; automated tests verify localized text but do not establish rendered color or live feed behavior.
+
+- Version-only verification release `1.1.3 (15)` allows installed `1.1.2` to detect a newer signed release and verify the green notice without clicking Check for Updates. No runtime or layout changes.
