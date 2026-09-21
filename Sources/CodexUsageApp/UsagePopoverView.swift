@@ -222,7 +222,8 @@ struct UsagePopoverView: View {
             } label: {
                 actionRow(
                     title: presentation.text(.quit),
-                    symbol: "rectangle.portrait.and.arrow.right"
+                    symbol: "rectangle.portrait.and.arrow.right",
+                    trailing: AppVersion.current
                 )
             }
             .buttonStyle(.plain)
@@ -263,7 +264,11 @@ struct UsagePopoverView: View {
         }
     }
 
-    private func actionRow(title: String, symbol: String) -> some View {
+    private func actionRow(
+        title: String,
+        symbol: String,
+        trailing: String? = nil
+    ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
                 .font(.system(size: 14))
@@ -272,6 +277,12 @@ struct UsagePopoverView: View {
             Text(title)
                 .font(.system(size: 14))
             Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(.caption2)
+                    .monospacedDigit()
+                    .foregroundStyle(.tertiary)
+            }
         }
         .contentShape(Rectangle())
         .padding(.horizontal, 10)
