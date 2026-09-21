@@ -35,6 +35,14 @@ Focused comparison was required for the preferences footer and appearance behavi
 - Image and icon fidelity: there are no raster content assets. Controls use native SF Symbols rather than approximated icons.
 - Copy and content: English and Simplified Chinese are correct for the captured states. No Follow System copy, `gpt-reserve`, model name, secondary quota, or invented metric is visible.
 
+## App Icon QA
+
+- Selected direction: a terminal chevron paired with a three-quarter usage bar, matching the app's developer-tool purpose and system-blue progress treatment without copying the OpenAI or ChatGPT mark.
+- Source artwork: `Packaging/CodexUsageIcon-1024.png`, 1024 × 1024 RGBA with transparency outside the macOS squircle.
+- Packaged artwork: `Packaging/CodexUsage.icns`, containing the standard 16, 32, 128, 256, 512, and 1024-pixel representations.
+- Small-size check: the chevron and filled-versus-unfilled bar remain distinct at 32 × 32; there is no text or fine linework that collapses at Spotlight and Finder sizes.
+- Bundle check: `CFBundleIconFile` points to `CodexUsage.icns`, the build copies it into `Contents/Resources`, and packaging verification expands the ICNS and confirms the 1024-pixel representation.
+
 ## Comparison History
 
 1. Initial implementation: auxiliary `gpt-reserve` row, undersized typography, narrow layout, and abruptly centered preference controls. Dark selection did not visibly change the panel.
