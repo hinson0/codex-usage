@@ -10,6 +10,7 @@ trap 'rm -rf "$staging_root"' EXIT
 
 swift_build_arguments=(-c release --product CodexUsage)
 source_info="$repo_root/Packaging/Info.plist"
+source_icon="$repo_root/Packaging/CodexUsage.icns"
 
 if [[ "${CODEX_USAGE_UNIVERSAL:-0}" == "1" ]]; then
   arm64_scratch="$repo_root/.build/codex-usage-arm64"
@@ -45,6 +46,7 @@ done < <(find "$artifact_root" -type d -name Sparkle.framework -print)
   exit 1
 }
 plutil -lint "$source_info" >/dev/null
+[[ -s "$source_icon" ]] || { echo "Application icon is missing: $source_icon" >&2; exit 1; }
 
 staged_app="$staging_root/CodexUsage.app"
 mkdir -p \
@@ -53,6 +55,7 @@ mkdir -p \
   "$staged_app/Contents/Resources"
 install -m 755 "$source_binary" "$staged_app/Contents/MacOS/CodexUsage"
 install -m 644 "$source_info" "$staged_app/Contents/Info.plist"
+install -m 644 "$source_icon" "$staged_app/Contents/Resources/CodexUsage.icns"
 ditto "${sparkle_frameworks[0]}" "$staged_app/Contents/Frameworks/Sparkle.framework"
 
 codesign --force --deep --sign - --timestamp=none "$staged_app/Contents/Frameworks/Sparkle.framework"
