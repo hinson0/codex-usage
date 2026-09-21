@@ -17,12 +17,29 @@ public enum AppAppearance: String, Codable, CaseIterable, Sendable {
     case light
     case dark
 
-    public var nativeAppearanceName: String? {
+    public var nativeAppearancePolicy: NativeAppearancePolicy {
         switch self {
-        case .system: nil
-        case .light: "NSAppearanceNameAqua"
-        case .dark: "NSAppearanceNameDarkAqua"
+        case .system, .light:
+            NativeAppearancePolicy(
+                applicationName: nil,
+                popoverName: "NSAppearanceNameAqua"
+            )
+        case .dark:
+            NativeAppearancePolicy(
+                applicationName: nil,
+                popoverName: "NSAppearanceNameDarkAqua"
+            )
         }
+    }
+}
+
+public struct NativeAppearancePolicy: Equatable, Sendable {
+    public let applicationName: String?
+    public let popoverName: String
+
+    public init(applicationName: String?, popoverName: String) {
+        self.applicationName = applicationName
+        self.popoverName = popoverName
     }
 }
 

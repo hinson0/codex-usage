@@ -33,12 +33,14 @@ struct UsagePopoverView: View {
         }
         .frame(width: 348)
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
+        .background(
+            PopoverAppearanceBridge(
+                appearanceName: controller.appearance.nativeAppearancePolicy.popoverName
+            )
+            .frame(width: 0, height: 0)
+        )
         .onAppear {
-            applyAppearance()
             Task { await controller.refresh() }
-        }
-        .onChange(of: controller.appearance) { _ in
-            applyAppearance()
         }
         .onReceive(NotificationCenter.default.publisher(
             for: NSLocale.currentLocaleDidChangeNotification
@@ -276,14 +278,43 @@ struct UsagePopoverView: View {
         .padding(.vertical, 9)
     }
 
+}
+
+private struct PopoverAppearanceBridge: NSViewRepresentable {
+    let appearanceName: String
+
+    func makeNSView(context: Context) -> PopoverAppearanceView {
+        PopoverAppearanceView(appearanceName: appearanceName)
+    }
+
+    func updateNSView(_ nsView: PopoverAppearanceView, context: Context) {
+        nsView.appearanceName = appearanceName
+    }
+}
+
+private final class PopoverAppearanceView: NSView {
+    var appearanceName: String {
+        didSet { applyAppearance() }
+    }
+
+    init(appearanceName: String) {
+        self.appearanceName = appearanceName
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        applyAppearance()
+    }
+
     private func applyAppearance() {
-        let rawName = controller.appearance.nativeAppearanceName
-            ?? AppAppearance.light.nativeAppearanceName!
-        let appearance = NSAppearance(named: NSAppearance.Name(rawValue: rawName))
-        NSApplication.shared.appearance = appearance
-        NSApplication.shared.windows.forEach { $0.appearance = appearance }
-        DispatchQueue.main.async {
-            NSApplication.shared.windows.forEach { $0.appearance = appearance }
-        }
+        window?.appearance = NSAppearance(
+            named: NSAppearance.Name(rawValue: appearanceName)
+        )
     }
 }

@@ -40,6 +40,7 @@ Focused comparison was required for the preferences footer and appearance behavi
 1. Initial implementation: auxiliary `gpt-reserve` row, undersized typography, narrow layout, and abruptly centered preference controls. Dark selection did not visibly change the panel.
 2. Integrated-footer iteration: removed auxiliary quotas, widened hierarchy, and created a two-cell footer. QA still found an oversized 432-point panel and ineffective dark appearance.
 3. Final iteration: removed both Follow System options, migrated defaults to Light and English, forced the selected native appearance on the app and menu-bar window, reduced width to 348 points, restored compact type and spacing, and retained the full-width footer.
+4. Status-item correction: a user-reported regression showed that application-wide appearance also recolored the menu-bar title. Appearance is now scoped only to the popover window; the status item remains system-controlled. The scope contract is covered by `appearanceSelectionIsScopedToPopoverInsteadOfWholeApplication`.
 
 ## Findings
 
@@ -49,6 +50,7 @@ Focused comparison was required for the preferences footer and appearance behavi
 ## Interaction and Evidence Limits
 
 - Verified visually: Light, Dark, English, Simplified Chinese, zero-reset state, hidden auxiliary quotas, and compact layout.
+- Verified structurally and by regression test: popover appearance never sets application-level appearance, so the menu-bar title remains under macOS contrast control.
 - Verified by automated tests: positive-reset title/action behavior, confirmation state, localization parity, persistence, and legacy preference migration.
 - Not visually exercised because the live account has zero resets: the positive-reset confirmation button and post-redemption result state.
 

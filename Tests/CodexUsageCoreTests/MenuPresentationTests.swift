@@ -163,10 +163,11 @@ struct MenuPresentationTests {
     }
 
     @Test
-    func appearanceSelectionMapsToNativeMacOSAppearanceNames() {
-        #expect(AppAppearance.system.nativeAppearanceName == nil)
-        #expect(AppAppearance.light.nativeAppearanceName == "NSAppearanceNameAqua")
-        #expect(AppAppearance.dark.nativeAppearanceName == "NSAppearanceNameDarkAqua")
+    func appearanceSelectionIsScopedToPopoverInsteadOfWholeApplication() {
+        #expect(AppAppearance.light.nativeAppearancePolicy.applicationName == nil)
+        #expect(AppAppearance.light.nativeAppearancePolicy.popoverName == "NSAppearanceNameAqua")
+        #expect(AppAppearance.dark.nativeAppearancePolicy.applicationName == nil)
+        #expect(AppAppearance.dark.nativeAppearancePolicy.popoverName == "NSAppearanceNameDarkAqua")
     }
 }
 
