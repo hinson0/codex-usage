@@ -24,12 +24,11 @@ struct UsagePopoverView: View {
             Divider()
                 .padding(.horizontal, 20)
             preferencesFooter
-            Divider()
-                .padding(.horizontal, 20)
             actionsSection
         }
         .frame(width: 348)
-        .background(popoverBackgroundColor.ignoresSafeArea())
+        .background(popoverBackgroundColor)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .background(
             PopoverAppearanceBridge(
@@ -129,7 +128,7 @@ struct UsagePopoverView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
-        .padding(.bottom, 18)
+        .padding(.bottom, 14)
     }
 
     private var preferencesFooter: some View {
@@ -178,7 +177,7 @@ struct UsagePopoverView: View {
                 .fill(Color.primary.opacity(0.055))
         )
         .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
     }
 
     private var actionsSection: some View {
@@ -217,7 +216,7 @@ struct UsagePopoverView: View {
                     .fill(Color.primary.opacity(0.055))
             )
             .padding(.horizontal, 12)
-            .padding(.vertical, 12)
+            .padding(.bottom, 8)
 
             Divider()
                 .padding(.horizontal, 20)
@@ -348,6 +347,10 @@ private final class PopoverAppearanceView: NSView {
     }
 
     private func applyAppearance() {
+        // The SwiftUI surface owns the opaque fill and rounded outline.
+        // An opaque window would paint behind its transparent corners.
+        window?.isOpaque = false
+        window?.backgroundColor = .clear
         window?.appearance = NSAppearance(
             named: NSAppearance.Name(rawValue: appearanceName)
         )

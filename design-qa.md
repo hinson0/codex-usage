@@ -1,5 +1,13 @@
 # Codex Usage Design QA
 
+## Rounded Surface and Compact Spacing (2026-09-22)
+
+- Fixed the square opaque background by clipping the complete SwiftUI surface to a continuous 14-point rounded rectangle and clearing the popover window's backing fill. Interior content remains opaque in both appearances.
+- Removed the redundant divider between preferences and actions, reduced their combined gap from 25 to 8 points, and trimmed section padding. Fixture content now measures 348 × 312 points, down from 348 × 341.
+- Current renders: `docs/images/qa/codex-usage-rounded-compact-light-zh.png` and `docs/images/qa/codex-usage-rounded-compact-dark-en.png`. Both were inspected for corner shape, text clipping, and compact control spacing. The earlier evidence below describes previous layouts.
+- `bash Tests/PopoverRenderingTests.sh` compiles the production view against fixture usage and a no-network updater. Before the fix, both appearances failed corner transparency, window backing, and compact-height checks. Afterward, both pass; interior opacity is also checked.
+- Evidence limit: these are native NSHostingView renders, not screenshots of the installed menu-bar popup. The inactive host makes the progress bar gray and has no bundle version. Live window chrome, shadow, and menu interaction need an installed-app check.
+
 ## Evidence
 
 - Source visual truth: `docs/images/codex-usage-dual-window.png`.
