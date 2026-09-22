@@ -28,7 +28,6 @@ struct UsagePopoverView: View {
         }
         .frame(width: 348)
         .background(popoverBackgroundColor)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .background(
             PopoverAppearanceBridge(
@@ -343,16 +342,44 @@ private final class PopoverAppearanceView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didResizeNotification, object: nil)
+        if let window {
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(windowDidResize),
+                name: NSWindow.didResizeNotification, object: window
+            )
+        }
         applyAppearance()
     }
 
     private func applyAppearance() {
-        // The SwiftUI surface owns the opaque fill and rounded outline.
-        // An opaque window would paint behind its transparent corners.
+        // SwiftUI supplies an opaque rectangular fill. A single mask clips the
+        // complete native frame, including MenuBarExtra's system material.
         window?.isOpaque = false
         window?.backgroundColor = .clear
+        updateWindowMask()
         window?.appearance = NSAppearance(
             named: NSAppearance.Name(rawValue: appearanceName)
         )
+    }
+
+    @objc private func windowDidResize(_ notification: Notification) {
+        updateWindowMask()
+    }
+
+    private func updateWindowMask() {
+        guard let frameView = window?.contentView?.superview else { return }
+        frameView.wantsLayer = true
+        let mask = CAShapeLayer()
+        mask.frame = frameView.bounds
+        mask.path = CGPath(
+            roundedRect: CGRect(origin: .zero, size: frameView.bounds.size),
+            cornerWidth: 14, cornerHeight: 14, transform: nil
+        )
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        frameView.layer?.mask = mask
+        CATransaction.commit()
+        window?.invalidateShadow()
     }
 }

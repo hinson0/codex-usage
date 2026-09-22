@@ -1,5 +1,13 @@
 # Codex Usage Design QA
 
+## Native Window Corner Fringe (1.1.5)
+
+- The user's screenshot of 1.1.4 shows gray system material around the content's rounded corners. The earlier content-only render missed this defect; the earlier passing result did not establish the complete popover outline.
+- The content now paints an opaque rectangle, and a single shape mask clips the entire native window frame. This includes the system backing rather than exposing it around a separate SwiftUI clip. The mask follows window resize notifications so loading/error height changes are not clipped to the initial bounds.
+- The regression harness inserts a contrasting red backing below the real content and renders the complete native frame layer tree. Before the fix, corner transparency and backing-color checks fail. With the fix, light Chinese and dark English pass both checks, plus interior opacity and grow/shrink checks.
+- Current complete-frame captures: `docs/images/qa/codex-usage-window-mask-light-zh.png` and `docs/images/qa/codex-usage-window-mask-dark-en.png`. These supersede the content-only evidence for corner rendering. The render uses an inactive fixture host, so the progress bar is gray and the bundle version is absent.
+- Evidence limit: this is a borderless NSWindow test host, not a captured MenuBarExtra window. CUA inspection of the installed app timed out. Real menu-bar chrome, shadow, and reopen/appearance-switch interaction remain unverified; no claim of installed-app visual acceptance is made.
+
 ## Rounded Surface and Compact Spacing (2026-09-22)
 
 - Fixed the square opaque background by clipping the complete SwiftUI surface to a continuous 14-point rounded rectangle and clearing the popover window's backing fill. Interior content remains opaque in both appearances.
