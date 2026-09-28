@@ -160,6 +160,36 @@ struct MenuBarPopoverRendering: App {
         let right = rect.maxX - frame.bounds.minX
         let top = frame.bounds.maxY - rect.maxY
         let bottom = frame.bounds.maxY - rect.minY
+        let surfaceOnScreen = window.convertToScreen(view.convert(view.bounds, to: nil))
+        guard let statusWindow = NSApp.windows.first(where: {
+            $0.contentView.flatMap(findStatusButton) != nil
+        }) else { throw CheckFailure("\(state): status window unavailable") }
+        let menuGap = statusWindow.frame.minY - surfaceOnScreen.maxY
+        print("GEOMETRY: \(state), menu gap \(menuGap), window \(window.frame), surface \(surfaceOnScreen)")
+        if state == "light-zh", let mainScreen = NSScreen.screens.first {
+            // Keep the menu bar in the evidence: an isolated window crop cannot
+            // establish its distance from the status item.
+            let region = NSRect(
+                x: window.frame.minX,
+                y: mainScreen.frame.maxY - statusWindow.frame.maxY,
+                width: window.frame.width,
+                height: statusWindow.frame.maxY - surfaceOnScreen.minY + 12
+            )
+            let anchorCapture = Process()
+            anchorCapture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+            anchorCapture.arguments = [
+                "-x", "-R\(Int(region.minX)),\(Int(region.minY)),\(Int(region.width)),\(Int(region.height))",
+                "\(output)/inset\(Int(inset))-menu-anchor.png",
+            ]
+            try anchorCapture.run()
+            anchorCapture.waitUntilExit()
+            guard anchorCapture.terminationStatus == 0 else {
+                throw CheckFailure("\(state): menu anchor capture failed")
+            }
+        }
+        guard menuGap >= 0, menuGap <= 2 else {
+            throw CheckFailure("\(state): empty strip below menu bar is \(menuGap) points; expected 0...2; screenshot: \(path)")
+        }
         func alpha(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
             bitmap.colorAt(x: Int(x * scale), y: Int(y * scale))!.alphaComponent
         }
