@@ -1,5 +1,23 @@
 # Codex Usage Design QA
 
+## Icon and Bare Count (1.1.8, 2026-09-28)
+
+- Accepted visual target: `docs/images/codex-usage-icon-count.png`. This scoped change replaces the menu-bar word `Codex` with the app's monochrome chevron/track mark and displays positive reset counts as `(1)` in both the status item and popover. Percentages, window ordering, zero-count hiding, reset time, and the existing compact popover layout remain intact.
+- Evidence: `docs/images/qa/codex-usage-icon-count-status.png`, `docs/images/qa/codex-usage-icon-count-light-zh.png`, and `docs/images/qa/codex-usage-icon-count-dark-en.png`. Captured from a real MenuBarExtra using production `StatusItemContent` and `UsagePopoverView`, fixture usage of 94%, and one read-only reset. The fixture never starts Sparkle or contacts an account.
+- Comparison: opened the accepted source and all three actual captures together in one visual comparison input, including a focused status-item capture. Source is 1586 × 992 with an approximately 620-pixel-wide popover; actual content is 348 × 306 at native 1× density, and the status crop is 88 × 22. Compared app-owned content and proportional hierarchy, not desktop wallpaper or the mock's enlarged native controls. The fixture date is September 27 rather than the concept's October 4; this is fixture data, not a formatting change.
+- Fonts/typography: retained native SF hierarchy and baseline-aligned numeric text; no clipped count, title, or control text in either language.
+- Spacing/layout: retained the existing 348-point compact surface and rounded corners. The status icon uses an 18 × 18 point image with native image/title spacing. The separate count fits the metadata row.
+- Colors/tokens: native template rendering allows macOS to choose menu-bar contrast; the captured selected item is white on system blue. Popover appearance does not recolor the status item. White/dark surfaces, blue progress, and secondary metadata remain consistent.
+- Asset fidelity: transparent raster template retains the approved chevron above a short bar, without a colored tile. Generated with built-in Image Gen from the approved concept and stored at `Sources/CodexUsageApp/Resources/StatusIconTemplate.png`; it is included in both SwiftPM resources and the packaged app. Generation brief: extract only the approved status icon, flat black silhouette with rounded strokes, true transparency, no text, tile, shadow, gradient, or other UI.
+- Copy/content: visible status title is `94% (1)`, with `Codex` retained in its accessibility label. Popover count is `(1)` in English and Chinese; the existing next-reset timestamp label remains localized. Zero reset credits still produce no count.
+- Verification: focused expectations failed against the old labels before production edits, then passed. Full suite: 38 tests, with the opt-in live protocol test skipped because no protocol code changed. Existing headless popover, release-script, and runner checks pass. Real MenuBarExtra checks pass all 18 states across zero/10-point padding, including loading, both languages, appearance changes, error growth/recovery, and reopening. The fixture also asserts the real NSStatusBarButton has the expected title and an 18-point template image.
+- Main integration: retained the published 1.1.7 menu-anchor fix. Reran the complete suite and all 18 native states after synchronization; every state retained the 2-point menu gap. Refreshed the captures from this combined build.
+- Release validation: version `1.1.8 (20)` builds with warnings as errors. Packaging contracts, deep/strict code-signature verification, and packaged-app smoke testing all pass.
+- P3: the accepted concept enlarges controls and has different surrounding desktop chrome. The implementation intentionally retains established native metrics and existing popover layout; these are outside the requested icon/count change.
+- No actionable P0/P1/P2 differences remain for this scope. These are fixture captures, not an installed upgrade or live-account screenshot.
+
+final result: passed
+
 ## Menu-Bar Anchor Gap (1.1.7)
 
 - The user's installed 1.1.6 screenshot shows a 12-point gap below the menu bar. The previous mask fixed the visible outline but left 10 points of transparent native padding inside the window, in addition to the normal 2-point menu gap. The earlier tests checked the isolated outline and did not measure its screen position relative to the menu bar.

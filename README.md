@@ -25,12 +25,12 @@
 
 Codex Usage is a lightweight, native macOS menu bar utility for checking your remaining Codex allowance without opening a dashboard. It reads the official five-hour and longer-window data when available, and shows banked reset count as read-only information.
 
-The status title stays deliberately compact:
+The status item starts with the app’s monochrome icon, followed by compact text:
 
 ```text
-Codex 99%                    Longer window only; five-hour use is unlimited
-Codex 82%-94%                Five-hour remaining, then longer-window remaining
-Codex 82%-94% (2 resets)     Two banked resets available
+99%                Longer window only; five-hour use is unlimited
+82%-94%            Five-hour remaining, then longer-window remaining
+82%-94% (2)        Two banked resets available
 ```
 
 ### Target experience
