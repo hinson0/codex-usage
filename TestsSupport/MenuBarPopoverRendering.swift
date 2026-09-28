@@ -10,7 +10,7 @@ private actor MenuBarRenderService: UsageService {
     func readRateLimits() async throws -> UsageSnapshot {
         try await Task.sleep(for: .milliseconds(400))
         if fails { throw UsageServiceError.unavailable("Fixture error that changes the popover height.") }
-        return try await RenderUsageService().readRateLimits()
+        return try await RenderUsageService(usedPercent: 6, resetCount: 1).readRateLimits()
     }
 }
 
@@ -59,7 +59,7 @@ struct MenuBarPopoverRendering: App {
                 .background(SurfaceProbe(observation: surface))
                 .padding(.vertical, inset)
         } label: {
-            Text("Usage QA")
+            StatusItemContent(title: controller.statusTitle)
                 .task { await runChecks() }
         }
         .menuBarExtraStyle(.window)
@@ -78,6 +78,7 @@ struct MenuBarPopoverRendering: App {
             try await capture("loading")
             try await waitForRefresh()
             try await capture("light-zh")
+            try captureStatusItem(button)
 
             controller.setAppearance(.dark)
             try await settle()
@@ -131,6 +132,23 @@ struct MenuBarPopoverRendering: App {
     private func findStatusButton(_ view: NSView) -> NSStatusBarButton? {
         if let button = view as? NSStatusBarButton { return button }
         return view.subviews.compactMap(findStatusButton).first
+    }
+
+    private func captureStatusItem(_ button: NSStatusBarButton) throws {
+        guard button.title == "94% (1)", let icon = button.image, icon.isTemplate,
+              icon.size == NSSize(width: 18, height: 18), let window = button.window else {
+            throw CheckFailure("Status item must show the 18-point template icon and 94% (1); got \(button.title)")
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        // Status windows cannot be captured by window ID on every macOS release.
+        let rect = window.convertToScreen(button.convert(button.bounds, to: nil))
+        let top = NSScreen.screens[0].frame.maxY - rect.maxY
+        let region = "\(Int(rect.minX)),\(Int(top)),\(Int(rect.width)),\(Int(rect.height))"
+        process.arguments = ["-x", "-R\(region)", "\(output)/inset\(Int(inset))-status.png"]
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { throw CheckFailure("Status item capture failed") }
     }
 
     private func capture(_ state: String) async throws {

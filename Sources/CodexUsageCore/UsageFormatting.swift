@@ -26,17 +26,11 @@ public enum UsageFormatting {
         let percentages = [fiveHourRemainingPercent, longerRemainingPercent]
             .compactMap { $0 }
             .map { "\(min(100, max(0, $0)))%" }
-        guard !percentages.isEmpty else { return "Codex --%" }
-        let base = "Codex \(percentages.joined(separator: "-"))"
+        guard !percentages.isEmpty else { return "--%" }
+        let base = percentages.joined(separator: "-")
         guard availableResets > 0 else { return base }
-
-        switch language.resolved() {
-        case .zhHans:
-            return "\(base)(\(availableResets) 次)"
-        case .english, .system:
-            let noun = availableResets == 1 ? "reset" : "resets"
-            return "\(base) (\(availableResets) \(noun))"
-        }
+        let count = LocalizationCatalog.format(.availableResets, language: language, availableResets)
+        return "\(base) \(count)"
     }
 
     public static func windows(in bucket: RateLimitBucket?) -> UsageWindowSelection {
