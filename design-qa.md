@@ -1,5 +1,13 @@
 # Codex Usage Design QA
 
+## Menu-Bar Anchor Gap (1.1.7)
+
+- The user's installed 1.1.6 screenshot shows a 12-point gap below the menu bar. The previous mask fixed the visible outline but left 10 points of transparent native padding inside the window, in addition to the normal 2-point menu gap. The earlier tests checked the isolated outline and did not measure its screen position relative to the menu bar.
+- The appearance bridge now anchors the visible surface 2 points below the application's own status-button window on the same screen. It reapplies the position on layout, resize, and native window moves, with a reentrancy guard. The content mask continues to handle corners and native backing. No fixed 10-point inset or private AppKit class names are used by the fix.
+- Added an independent screen-coordinate assertion to `Tests/MenuBarPopoverRenderingTests.sh`. Before the production change, the zero-inset case passed and the padded loading case failed with `empty strip below menu bar is 12.0 points; expected 0...2`. Afterward, all 18 states (zero/10-point host padding, loading, appearance/language changes, error expansion/recovery, and three reopens) measure a 2-point gap and retain the existing pixel checks.
+- `docs/images/qa/codex-usage-menu-anchor-light-zh.png` includes the menu bar and the fixed padded fixture. A window-only crop is insufficient evidence for this regression.
+- The full test suite, four offscreen rendering cases, warnings-as-errors release build, packaging/signature checks, and smoke test passed. The local 1.1.7 app was installed and started; its executable hash matches the verified build. The installed popup was closed during the final read-only process inspection, so the 2-point visual result above is established by the real-menu fixture, not an installed-app screenshot. Other macOS releases and multiple-display transitions have not been visually verified.
+
 ## Content-Aligned Native Mask (1.1.6)
 
 - The user's 1.1.5 screenshot invalidates the earlier corner acceptance: the visible content still has square top corners and a strip of native backing below it.
