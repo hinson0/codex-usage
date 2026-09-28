@@ -26,4 +26,3 @@ struct RenderUsageService: UsageService {
         ), refreshedAt: Date())
     }
 }
-
