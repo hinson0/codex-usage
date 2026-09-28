@@ -2,31 +2,6 @@ import AppKit
 import CodexUsageCore
 import SwiftUI
 
-// Rendering never starts Sparkle or accesses a live account.
-@MainActor
-final class UpdateCoordinator: ObservableObject {
-    let canCheckForUpdates = true
-    let hasAvailableUpdate = false
-    func checkForUpdateInformation() {}
-    func checkForUpdates() {}
-}
-
-struct RenderUsageService: UsageService {
-    func readRateLimits() async throws -> UsageSnapshot {
-        UsageSnapshot(response: RateLimitsResponse(
-            rateLimits: RateLimitBucket(
-                limitId: "codex", limitName: nil, normalModelSlug: nil,
-                primary: nil,
-                secondary: RateLimitWindow(
-                    usedPercent: 24, windowDurationMins: 10080, resetsAt: 1790502240
-                )
-            ),
-            rateLimitsByLimitId: nil,
-            rateLimitResetCredits: ResetCreditsSummary(availableCount: 0)
-        ), refreshedAt: Date())
-    }
-}
-
 @main
 struct PopoverRendering {
     @MainActor
@@ -34,9 +9,13 @@ struct PopoverRendering {
         _ = NSApplication.shared
         var failures: [String] = []
         let output = CommandLine.arguments[1]
-        for (appearance, language) in [
-            (AppAppearance.light, AppLanguage.zhHans),
-            (.dark, .english),
+        // A real 1.1.5 MenuBarExtra has 10-point native padding above/below
+        // the SwiftUI surface. The old zero-inset host could not catch the bug.
+        for (appearance, language, inset) in [
+            (AppAppearance.light, AppLanguage.zhHans, 0),
+            (.dark, .english, 0),
+            (.light, .zhHans, 10),
+            (.dark, .english, 10),
         ] {
             let suite = "PopoverRendering.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: suite)!
@@ -49,7 +28,7 @@ struct PopoverRendering {
             await controller.refresh()
             let host = NSHostingView(rootView: UsagePopoverView(
                 controller: controller, updater: UpdateCoordinator()
-            ))
+            ).padding(.vertical, CGFloat(inset)))
             let size = host.fittingSize
             let window = NSWindow(
                 contentRect: NSRect(origin: .zero, size: size),
@@ -60,20 +39,20 @@ struct PopoverRendering {
             host.layoutSubtreeIfNeeded()
             let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds)!
             host.cacheDisplay(in: host.bounds, to: bitmap)
-            let label = "\(appearance.rawValue)-\(language.rawValue)"
+            let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)"
             try bitmap.representation(using: .png, properties: [:])!
                 .write(to: URL(fileURLWithPath: "\(output)/\(label).png"))
             for (x, y) in [(0, 0), (bitmap.pixelsWide - 1, 0),
                            (0, bitmap.pixelsHigh - 1),
                            (bitmap.pixelsWide - 1, bitmap.pixelsHigh - 1)] {
-                if bitmap.colorAt(x: x, y: y)!.alphaComponent < 0.99 {
+                if inset == 0 && bitmap.colorAt(x: x, y: y)!.alphaComponent < 0.99 {
                     failures.append("\(label): content must remain opaque underneath the window mask")
                 }
             }
-            if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: 8)!.alphaComponent < 0.99 {
+            if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
                 failures.append("\(label): interior background must remain opaque")
             }
-            if size.height > 315 {
+            if size.height - CGFloat(inset * 2) > 315 {
                 failures.append("\(label): excessive empty space, height \(size.height) > 315")
             }
             if window.isOpaque || window.backgroundColor != .clear {
@@ -102,15 +81,22 @@ struct PopoverRendering {
                 frameView.layer?.render(in: context)
                 try frameBitmap.representation(using: .png, properties: [:])!
                     .write(to: URL(fileURLWithPath: "\(output)/\(label)-frame.png"))
-                for (x, y) in [(2, 2), (frameBitmap.pixelsWide - 3, 2),
-                               (2, frameBitmap.pixelsHigh - 3),
-                               (frameBitmap.pixelsWide - 3, frameBitmap.pixelsHigh - 3)] {
+                for (x, y) in [(2, inset + 2), (frameBitmap.pixelsWide - 3, inset + 2),
+                               (2, frameBitmap.pixelsHigh - inset - 3),
+                               (frameBitmap.pixelsWide - 3, frameBitmap.pixelsHigh - inset - 3)] {
                     if frameBitmap.colorAt(x: x, y: y)!.alphaComponent > 0.1 {
                         failures.append("\(label): native backing leaks outside the rounded outline")
                     }
                 }
-                if frameBitmap.colorAt(x: frameBitmap.pixelsWide / 2, y: 8)!.alphaComponent < 0.99 {
+                if frameBitmap.colorAt(x: frameBitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
                     failures.append("\(label): composited frame interior must remain opaque")
+                }
+                if inset > 0 {
+                    for y in [inset / 2, frameBitmap.pixelsHigh - inset / 2 - 1] {
+                        if frameBitmap.colorAt(x: frameBitmap.pixelsWide / 2, y: y)!.alphaComponent > 0.1 {
+                            failures.append("\(label): native padding remains visible beyond the content")
+                        }
+                    }
                 }
                 var leakedBacking = false
                 for dx in 0..<16 {
@@ -137,7 +123,7 @@ struct PopoverRendering {
             // Loading/errors change the popover's height after it first opens.
             // The new bottom edge must remain inside the resized window mask.
             window.setContentSize(NSSize(width: size.width, height: size.height + 40))
-            let expandedBottom = CGPoint(x: size.width / 2, y: size.height + 36)
+            let expandedBottom = CGPoint(x: size.width / 2, y: size.height + 36 - CGFloat(inset))
             let expandedPath = (window.contentView?.superview?.layer?.mask as? CAShapeLayer)?.path
             if expandedPath?.contains(expandedBottom) != true {
                 failures.append("\(label): resizing clips newly added content")
