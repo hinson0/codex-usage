@@ -12,7 +12,10 @@ else
   readonly testing_libraries_dir="$developer_dir/usr/lib"
 fi
 
-run_shell_contract_tests() {
+run_supporting_tests() {
+  if [[ "$#" -eq 0 ]]; then
+    "$repo_root/Tests/PopoverRenderingTests.sh"
+  fi
   "$repo_root/Tests/ReleaseScriptsTests.sh"
   "$repo_root/Tests/ReleaseArtifactsTests.sh"
   "$repo_root/Tests/ReleaseWorkflowTests.sh"
@@ -23,7 +26,7 @@ run_shell_contract_tests() {
 
 if [[ ! -d "$frameworks_dir/Testing.framework" ]]; then
   swift test "$@"
-  run_shell_contract_tests
+  run_supporting_tests "$@"
   exit 0
 fi
 
@@ -49,4 +52,4 @@ swiftc \
 
 "$runner" "$@"
 
-run_shell_contract_tests
+run_supporting_tests "$@"

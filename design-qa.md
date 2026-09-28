@@ -1,5 +1,15 @@
 # Codex Usage Design QA
 
+## Content-Aligned Native Mask (1.1.6)
+
+- The user's 1.1.5 screenshot invalidates the earlier corner acceptance: the visible content still has square top corners and a strip of native backing below it.
+- Read-only debugger inspection of the installed 1.1.5 process on macOS 26.6.2 found a 348 × 330 window with 348 × 310 painted content at y = 10. The old mask followed the entire 330-point frame, placing its rounded corners outside the actual content. The previous borderless host had no such padding and therefore missed this condition. Merely changing a test executable's SDK compatibility metadata did not reproduce the failure.
+- The appearance bridge now occupies the complete SwiftUI background and converts that surface's bounds into native frame coordinates. The mask follows those bounds on layout and resize, clipping both the content and the native material outside it. No private AppKit class names or fixed system-padding values are used in production.
+- `Tests/PopoverRenderingTests.sh` now covers both zero and 10-point vertical host padding in Light/Chinese and Dark/English. The padded cases failed before the fix with square content corners, visible native padding, and contrasting backing leakage. All four cases pass after the fix, including grow/shrink checks. This regression runs in the unfiltered `scripts/test.sh` suite.
+- `Tests/MenuBarPopoverRenderingTests.sh` opens a real `MenuBarExtra`, uses fixture data and a stub updater, and checks compositor screenshots against an independent surface measurement. Both padding variants pass nine states each: loading, Light/Chinese, Dark/Chinese, Dark/English, error expansion, error recovery, and three reopens. Desktop focus changes can dismiss the test popover; the harness restores only its own window before capture. Screen Recording permission and a logged-in macOS desktop are required, so this test remains separate from headless CI.
+- Real-window evidence: `docs/images/qa/codex-usage-content-mask-before.png`, `docs/images/qa/codex-usage-content-mask-light-zh.png`, and `docs/images/qa/codex-usage-content-mask-dark-en.png`. The before capture reproduces the measured native-padding geometry with unmodified 1.1.5 view code; the after captures use the fixed production view. These supersede the earlier borderless-window evidence for this defect.
+- Evidence limit: these are local real-menu fixture captures on macOS 26.6.2, not a claim that every supported macOS release or the user's installed application has been upgraded. They omit the bundle version and live account state; installation/update delivery is separate from this visual verification.
+
 ## Native Window Corner Fringe (1.1.5)
 
 - The user's screenshot of 1.1.4 shows gray system material around the content's rounded corners. The earlier content-only render missed this defect; the earlier passing result did not establish the complete popover outline.
