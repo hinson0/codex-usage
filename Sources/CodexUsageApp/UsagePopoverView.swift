@@ -33,7 +33,6 @@ struct UsagePopoverView: View {
             PopoverAppearanceBridge(
                 appearanceName: controller.appearance.nativeAppearancePolicy.popoverName
             )
-            .frame(width: 0, height: 0)
         )
         .onAppear {
             updater.checkForUpdateInformation()
@@ -352,9 +351,14 @@ private final class PopoverAppearanceView: NSView {
         applyAppearance()
     }
 
+    override func layout() {
+        super.layout()
+        updateWindowMask()
+    }
+
     private func applyAppearance() {
-        // SwiftUI supplies an opaque rectangular fill. A single mask clips the
-        // complete native frame, including MenuBarExtra's system material.
+        // Clip native material to the actual SwiftUI surface. MenuBarExtra can
+        // add padding outside that surface, so window bounds are not its bounds.
         window?.isOpaque = false
         window?.backgroundColor = .clear
         updateWindowMask()
@@ -368,12 +372,15 @@ private final class PopoverAppearanceView: NSView {
     }
 
     private func updateWindowMask() {
-        guard let frameView = window?.contentView?.superview else { return }
+        guard let frameView = window?.contentView?.superview,
+              !bounds.isEmpty else { return }
+        let surface = convert(bounds, to: frameView)
+            .offsetBy(dx: -frameView.bounds.minX, dy: -frameView.bounds.minY)
         frameView.wantsLayer = true
         let mask = CAShapeLayer()
         mask.frame = frameView.bounds
         mask.path = CGPath(
-            roundedRect: CGRect(origin: .zero, size: frameView.bounds.size),
+            roundedRect: surface,
             cornerWidth: 14, cornerHeight: 14, transform: nil
         )
         CATransaction.begin()
