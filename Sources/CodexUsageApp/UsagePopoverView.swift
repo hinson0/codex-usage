@@ -325,6 +325,7 @@ private struct PopoverAppearanceBridge: NSViewRepresentable {
 }
 
 private final class PopoverAppearanceView: NSView {
+    private var isPositioning = false
     var appearanceName: String {
         didSet { applyAppearance() }
     }
@@ -342,10 +343,15 @@ private final class PopoverAppearanceView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResizeNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: nil)
         if let window {
             NotificationCenter.default.addObserver(
                 self, selector: #selector(windowDidResize),
                 name: NSWindow.didResizeNotification, object: window
+            )
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(windowDidMove),
+                name: NSWindow.didMoveNotification, object: window
             )
         }
         applyAppearance()
@@ -371,6 +377,30 @@ private final class PopoverAppearanceView: NSView {
         updateWindowMask()
     }
 
+    @objc private func windowDidMove(_ notification: Notification) {
+        alignVisibleSurface()
+    }
+
+    private func alignVisibleSurface() {
+        guard !isPositioning, !bounds.isEmpty, let window,
+              let statusWindow = NSApp.windows.first(where: {
+                  $0 !== window && $0.isVisible && $0.screen == window.screen
+                      && $0.contentView.map(containsStatusButton) == true
+              }) else { return }
+        // Native MenuBarExtra padding remains part of the window even after
+        // masking it away. Anchor the visible surface, not that invisible frame.
+        let surface = window.convertToScreen(convert(bounds, to: nil))
+        let delta = statusWindow.frame.minY - 2 - surface.maxY
+        guard abs(delta) > 0.5 else { return }
+        isPositioning = true
+        window.setFrameOrigin(NSPoint(x: window.frame.minX, y: window.frame.minY + delta))
+        isPositioning = false
+    }
+
+    private func containsStatusButton(_ view: NSView) -> Bool {
+        view is NSStatusBarButton || view.subviews.contains(where: containsStatusButton)
+    }
+
     private func updateWindowMask() {
         guard let frameView = window?.contentView?.superview,
               !bounds.isEmpty else { return }
@@ -388,5 +418,6 @@ private final class PopoverAppearanceView: NSView {
         frameView.layer?.mask = mask
         CATransaction.commit()
         window?.invalidateShadow()
+        alignVisibleSurface()
     }
 }
