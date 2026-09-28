@@ -28,7 +28,7 @@ private struct StatusItemLabel: View {
     @ObservedObject var updater: UpdateCoordinator
 
     var body: some View {
-        Text(controller.statusTitle)
+        StatusItemContent(title: controller.statusTitle)
             .task { await updater.monitorForUpdates() }
             .task {
                 await controller.refresh()

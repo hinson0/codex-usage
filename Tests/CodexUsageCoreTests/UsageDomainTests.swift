@@ -59,7 +59,7 @@ struct UsageDomainTests {
             longerRemainingPercent: nil,
             availableResets: 2,
             language: .english
-        ) == "Codex --%")
+        ) == "--%")
     }
 
     @Test
@@ -69,35 +69,35 @@ struct UsageDomainTests {
             longerRemainingPercent: 100,
             availableResets: 0,
             language: .zhHans
-        ) == "Codex 100%")
+        ) == "100%")
         #expect(UsageFormatting.statusTitle(
             fiveHourRemainingPercent: 80,
             longerRemainingPercent: 100,
             availableResets: 0,
             language: .english
-        ) == "Codex 80%-100%")
+        ) == "80%-100%")
     }
 
     @Test
-    func positiveResetsUseLocalizedSuffix() {
+    func positiveResetsUseBareParenthesizedCount() {
         #expect(UsageFormatting.statusTitle(
             fiveHourRemainingPercent: 80,
             longerRemainingPercent: 73,
             availableResets: 2,
             language: .zhHans
-        ) == "Codex 80%-73%(2 次)")
+        ) == "80%-73% (2)")
         #expect(UsageFormatting.statusTitle(
             fiveHourRemainingPercent: nil,
             longerRemainingPercent: 73,
             availableResets: 1,
             language: .english
-        ) == "Codex 73% (1 reset)")
+        ) == "73% (1)")
         #expect(UsageFormatting.statusTitle(
             fiveHourRemainingPercent: nil,
             longerRemainingPercent: 73,
             availableResets: 2,
             language: .english
-        ) == "Codex 73% (2 resets)")
+        ) == "73% (2)")
     }
 
     @Test

@@ -56,6 +56,8 @@ mkdir -p \
 install -m 755 "$source_binary" "$staged_app/Contents/MacOS/CodexUsage"
 install -m 644 "$source_info" "$staged_app/Contents/Info.plist"
 install -m 644 "$source_icon" "$staged_app/Contents/Resources/CodexUsage.icns"
+install -m 644 "$repo_root/Sources/CodexUsageApp/Resources/StatusIconTemplate.png" \
+  "$staged_app/Contents/Resources/StatusIconTemplate.png"
 ditto "${sparkle_frameworks[0]}" "$staged_app/Contents/Frameworks/Sparkle.framework"
 
 codesign --force --deep --sign - --timestamp=none "$staged_app/Contents/Frameworks/Sparkle.framework"

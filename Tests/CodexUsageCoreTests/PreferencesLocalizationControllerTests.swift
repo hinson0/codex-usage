@@ -108,7 +108,7 @@ struct PreferencesLocalizationControllerTests {
 
         #expect(await service.readCallCount == 1)
         #expect(controller.snapshot?.availableResetCount == 0)
-        #expect(controller.statusTitle == "Codex 80%")
+        #expect(controller.statusTitle == "80%")
     }
 }
 

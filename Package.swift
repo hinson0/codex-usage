@@ -35,6 +35,7 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             path: "Sources/CodexUsageApp",
+            resources: [.copy("Resources/StatusIconTemplate.png")],
             linkerSettings: [
                 .unsafeFlags([
                     "-Xlinker", "-rpath",

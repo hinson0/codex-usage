@@ -14,7 +14,7 @@ struct MenuPresentationTests {
             language: .zhHans
         )
 
-        #expect(presentation.statusTitle == "Codex 100%")
+        #expect(presentation.statusTitle == "100%")
         #expect(presentation.usagePercentText == "100%")
         #expect(presentation.remainingPercent == 100)
         #expect(presentation.availableResetsText == nil)
@@ -31,21 +31,21 @@ struct MenuPresentationTests {
             language: .english
         )
 
-        #expect(presentation.statusTitle == "Codex 73% (2 resets)")
-        #expect(presentation.availableResetsText == "2 resets")
+        #expect(presentation.statusTitle == "73% (2)")
+        #expect(presentation.availableResetsText == "(2)")
     }
 
-    @Test
-    func oneEnglishResetUsesSingularReadOnlyCopy() {
+    @Test(arguments: [AppLanguage.english, .zhHans, .system])
+    func oneResetUsesBareParenthesizedCount(language: AppLanguage) {
         let presentation = MenuPresentation(
             snapshot: makePresentationSnapshot(usedPercent: 27, resetCount: 1),
             isRefreshing: false,
             error: nil,
             appearance: .light,
-            language: .english
+            language: language
         )
 
-        #expect(presentation.availableResetsText == "1 reset")
+        #expect(presentation.availableResetsText == "(1)")
     }
 
     @Test
@@ -63,7 +63,7 @@ struct MenuPresentationTests {
             timeZone: TimeZone(secondsFromGMT: 0)!
         )
 
-        #expect(presentation.statusTitle == "Codex 80%-94% (2 resets)")
+        #expect(presentation.statusTitle == "80%-94% (2)")
         #expect(presentation.usagePercentText == "80% - 94%")
         #expect(presentation.remainingPercent == 94)
         #expect(presentation.fiveHourStatusText == nil)
@@ -85,7 +85,7 @@ struct MenuPresentationTests {
         )
 
         #expect(presentation.remainingPercent == nil)
-        #expect(presentation.statusTitle == "Codex 80%")
+        #expect(presentation.statusTitle == "80%")
     }
 
     @Test
@@ -110,7 +110,7 @@ struct MenuPresentationTests {
             language: .english
         )
 
-        #expect(presentation.statusTitle == "Codex 80%")
+        #expect(presentation.statusTitle == "80%")
         #expect(presentation.usagePercentText == "80%")
         #expect(presentation.remainingPercent == 80)
     }
@@ -137,7 +137,7 @@ struct MenuPresentationTests {
             language: .english
         )
 
-        #expect(presentation.statusTitle == "Codex 80%-94%")
+        #expect(presentation.statusTitle == "80%-94%")
         #expect(presentation.usagePercentText == "80% - 94%")
         #expect(presentation.remainingPercent == 94)
     }
