@@ -8,7 +8,7 @@ private actor MenuBarRenderService: UsageService {
     func setFailure(_ value: Bool) { fails = value }
 
     func readRateLimits() async throws -> UsageSnapshot {
-        try await Task.sleep(for: .milliseconds(400))
+        try await Task.sleep(for: .milliseconds(CommandLine.arguments.contains("--slow") ? 1_500 : 400))
         if fails { throw UsageServiceError.unavailable("Fixture error that changes the popover height.") }
         return try await RenderUsageService(usedPercent: 6, resetCount: 1).readRateLimits()
     }
@@ -55,9 +55,11 @@ struct MenuBarPopoverRendering: App {
 
     var body: some Scene {
         MenuBarExtra {
-            UsagePopoverView(controller: controller, updater: updater)
-                .background(SurfaceProbe(observation: surface))
-                .padding(.vertical, inset)
+            ContentSizedPopover {
+                UsagePopoverView(controller: controller, updater: updater)
+                    .background(SurfaceProbe(observation: surface))
+            }
+            .padding(.vertical, inset)
         } label: {
             StatusItemContent(title: controller.statusTitle)
                 .task { await runChecks() }
@@ -68,6 +70,9 @@ struct MenuBarPopoverRendering: App {
     private func runChecks() async {
         do {
             controller.setLanguage(.zhHans)
+            if CommandLine.arguments.contains("--warm") {
+                await controller.refresh()
+            }
             try await Task.sleep(for: .milliseconds(200))
             guard let button = NSApp.windows.compactMap(\.contentView)
                 .compactMap(findStatusButton).first else {
@@ -75,7 +80,7 @@ struct MenuBarPopoverRendering: App {
             }
             button.performClick(nil)
             try await Task.sleep(for: .milliseconds(100))
-            try await capture("loading")
+            try await capture(CommandLine.arguments.contains("--warm") ? "refreshing" : "loading")
             try await waitForRefresh()
             try await capture("light-zh")
             try captureStatusItem(button)
@@ -208,25 +213,85 @@ struct MenuBarPopoverRendering: App {
         guard menuGap >= 0, menuGap <= 2 else {
             throw CheckFailure("\(state): empty strip below menu bar is \(menuGap) points; expected 0...2; screenshot: \(path)")
         }
-        func alpha(_ x: CGFloat, _ y: CGFloat) -> CGFloat {
-            bitmap.colorAt(x: Int(x * scale), y: Int(y * scale))!.alphaComponent
+        func alpha(_ x: CGFloat, _ y: CGFloat) throws -> CGFloat {
+            let pixelX = Int(x * scale)
+            let pixelY = Int(y * scale)
+            guard pixelX >= 0, pixelY >= 0,
+                  pixelX < bitmap.pixelsWide, pixelY < bitmap.pixelsHigh,
+                  let color = bitmap.colorAt(x: pixelX, y: pixelY) else {
+                throw CheckFailure("\(state): sample (\(pixelX), \(pixelY)) outside \(bitmap.pixelsWide) × \(bitmap.pixelsHigh); frame \(frame.bounds), surface \(rect)")
+            }
+            return color.alphaComponent
         }
         for (x, y) in [(left + 2, top + 2), (right - 3, top + 2),
                        (left + 2, bottom - 3), (right - 3, bottom - 3)] {
-            guard alpha(x, y) < 0.1 else {
+            guard try alpha(x, y) < 0.1 else {
                 throw CheckFailure("\(state): square corner at (\(x), \(y)); screenshot: \(path)")
             }
         }
-        if top >= 2, alpha((left + right) / 2, top - 2) > 0.1 {
+        if top >= 2, try alpha((left + right) / 2, top - 2) > 0.1 {
             throw CheckFailure("\(state): native backing visible above content")
         }
-        if bottom + 2 < frame.bounds.height, alpha((left + right) / 2, bottom + 2) > 0.1 {
+        if bottom + 2 < frame.bounds.height, try alpha((left + right) / 2, bottom + 2) > 0.1 {
             throw CheckFailure("\(state): native backing visible below content")
         }
-        guard alpha((left + right) / 2, top + 8) > 0.99 else {
+        guard try alpha((left + right) / 2, top + 8) > 0.99 else {
             throw CheckFailure("\(state): opaque content clipped")
         }
+        try await checkDesktopOutline(state, window: window)
         print("PASS: inset\(Int(inset))-\(state), surface \(rect)")
+    }
+
+    private func checkDesktopOutline(_ state: String, window: NSWindow) async throws {
+        // A white desktop exposes a transparent gap between the content edge and
+        // the native shadow. Black backdrops and shadow-free captures hide it.
+        let backing = NSWindow(contentRect: window.frame.insetBy(dx: -20, dy: -20), styleMask: .borderless,
+                               backing: .buffered, defer: false)
+        backing.backgroundColor = .white
+        backing.hasShadow = false
+        backing.level = NSWindow.Level(rawValue: window.level.rawValue - 1)
+        backing.orderFrontRegardless()
+        defer { backing.orderOut(nil) }
+        try await settle()
+        if !window.isVisible {
+            window.orderFrontRegardless()
+            try await settle()
+        }
+        guard let view = self.surface.view else { throw CheckFailure("Surface unavailable") }
+        let surface = window.convertToScreen(view.convert(view.bounds, to: nil))
+        guard surface.minY >= window.frame.minY - 0.5,
+              surface.maxY <= window.frame.maxY + 0.5 else {
+            throw CheckFailure("\(state): content extends beyond its window; window \(window.frame), surface \(surface)")
+        }
+        let region = window.frame.insetBy(dx: -20, dy: -20)
+        backing.setFrame(region, display: true)
+        let path = "\(output)/inset\(Int(inset))-\(state)-desktop.png"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        let screenTop = NSScreen.screens[0].frame.maxY
+        process.arguments = ["-x", "-R\(Int(region.minX)),\(Int(screenTop - region.maxY)),\(Int(region.width)),\(Int(region.height))", path]
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0,
+              let bitmap = NSBitmapImageRep(data: try Data(contentsOf: URL(fileURLWithPath: path))) else {
+            throw CheckFailure("\(state): desktop capture failed")
+        }
+        let scale = CGFloat(bitmap.pixelsWide) / region.width
+        let x = Int((surface.midX - region.minX) * scale)
+        let luminance = try (2..<20).map { offset in
+            let y = Int((region.maxY - surface.minY + CGFloat(offset)) * scale)
+            guard x >= 0, x < bitmap.pixelsWide, y >= 0, y < bitmap.pixelsHigh,
+                  let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else {
+                throw CheckFailure("\(state): shadow sample outside desktop capture")
+            }
+            return color.redComponent
+        }
+        guard luminance.prefix(3).min()! < 0.98 else {
+            throw CheckFailure("\(state): shadow does not meet the content edge; screenshot: \(path)")
+        }
+        for (near, far) in zip(luminance, luminance.dropFirst()) where far < near - 0.02 {
+            throw CheckFailure("\(state): detached shadow below content (\(near) → \(far)); screenshot: \(path)")
+        }
     }
 }
 
