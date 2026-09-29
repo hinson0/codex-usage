@@ -326,6 +326,7 @@ private struct PopoverAppearanceBridge: NSViewRepresentable {
 
 private final class PopoverAppearanceView: NSView {
     private var isPositioning = false
+    private var updatePending = false
     var appearanceName: String {
         didSet { applyAppearance() }
     }
@@ -344,7 +345,20 @@ private final class PopoverAppearanceView: NSView {
         super.viewDidMoveToWindow()
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResizeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSView.frameDidChangeNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         if let window {
+            // Ancestor origins can settle after the surface's own frame. Those
+            // changes also affect its screen position and native mask bounds.
+            for view in sequence(first: self as NSView, next: { $0.superview }) {
+                view.postsFrameChangedNotifications = true
+                view.postsBoundsChangedNotifications = true
+                for name in [NSView.frameDidChangeNotification, NSView.boundsDidChangeNotification] {
+                    NotificationCenter.default.addObserver(
+                        self, selector: #selector(surfaceDidChange), name: name, object: view
+                    )
+                }
+            }
             NotificationCenter.default.addObserver(
                 self, selector: #selector(windowDidResize),
                 name: NSWindow.didResizeNotification, object: window
@@ -360,6 +374,7 @@ private final class PopoverAppearanceView: NSView {
     override func layout() {
         super.layout()
         updateWindowMask()
+        scheduleWindowUpdate()
     }
 
     private func applyAppearance() {
@@ -371,14 +386,33 @@ private final class PopoverAppearanceView: NSView {
         window?.appearance = NSAppearance(
             named: NSAppearance.Name(rawValue: appearanceName)
         )
+        scheduleWindowUpdate()
     }
 
     @objc private func windowDidResize(_ notification: Notification) {
         updateWindowMask()
+        scheduleWindowUpdate()
     }
 
     @objc private func windowDidMove(_ notification: Notification) {
-        alignVisibleSurface()
+        scheduleWindowUpdate()
+    }
+
+    private func scheduleWindowUpdate() {
+        guard !updatePending else { return }
+        updatePending = true
+        // Window resize notifications can precede the hosting view's final
+        // frame. Reapply the mask and anchor after that geometry has settled.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.updatePending = false
+            self.updateWindowMask()
+            self.alignVisibleSurface()
+        }
+    }
+
+    @objc private func surfaceDidChange(_ notification: Notification) {
+        scheduleWindowUpdate()
     }
 
     private func alignVisibleSurface() {
@@ -418,6 +452,5 @@ private final class PopoverAppearanceView: NSView {
         frameView.layer?.mask = mask
         CATransaction.commit()
         window?.invalidateShadow()
-        alignVisibleSurface()
     }
 }

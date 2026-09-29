@@ -15,7 +15,9 @@ struct CodexUsageApplication: App {
 
     var body: some Scene {
         MenuBarExtra {
-            UsagePopoverView(controller: controller, updater: updater)
+            ContentSizedPopover {
+                UsagePopoverView(controller: controller, updater: updater)
+            }
         } label: {
             StatusItemLabel(controller: controller, updater: updater)
         }
