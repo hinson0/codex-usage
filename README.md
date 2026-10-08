@@ -38,6 +38,7 @@ The status item starts with the app’s monochrome icon, followed by compact tex
 - Five-hour and longer-window remaining percentages when both limits exist.
 - A clear “Unlimited” five-hour row when the official response has no five-hour window.
 - Longer-window allowance with a compact horizontal progress bar and reset time.
+- Time until the displayed reset, updated every minute, beneath its timestamp.
 - Read-only reset count shown only when one or more resets are available.
 - Automatic refresh on launch, every 60 seconds, and when the popover opens.
 - Light and Dark appearances.
