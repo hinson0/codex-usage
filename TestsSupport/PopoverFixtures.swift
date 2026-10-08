@@ -14,6 +14,7 @@ final class UpdateCoordinator: ObservableObject {
 struct RenderUsageService: UsageService {
     var usedPercent: Double = 24
     var resetCount: Int = 0
+    var resetsAt: Int64 = Int64(Date().timeIntervalSince1970) + 6 * 86_400 + 3 * 3_600 + 300
 
     func readRateLimits() async throws -> UsageSnapshot {
         UsageSnapshot(response: RateLimitsResponse(
@@ -21,7 +22,7 @@ struct RenderUsageService: UsageService {
                 limitId: "codex", limitName: nil, normalModelSlug: nil,
                 primary: nil,
                 secondary: RateLimitWindow(
-                    usedPercent: usedPercent, windowDurationMins: 10080, resetsAt: 1790502240
+                    usedPercent: usedPercent, windowDurationMins: 10080, resetsAt: resetsAt
                 )
             ),
             rateLimitsByLimitId: nil,

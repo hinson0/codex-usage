@@ -92,15 +92,36 @@ public struct MenuPresentation: Sendable {
     }
 
     public var nextResetText: String? {
-        guard let timestamp = (usageWindows.longer ?? usageWindows.fiveHour)?.resetsAt else {
-            return nil
-        }
+        guard let timestamp = nextResetTimestamp else { return nil }
         let date = LocalizationCatalog.dateTime(
             Date(timeIntervalSince1970: TimeInterval(timestamp)),
             language: language,
             timeZone: timeZone
         )
         return LocalizationCatalog.format(.nextReset, language: language, date)
+    }
+
+    public func resetCountdownText(at now: Date) -> String? {
+        guard let timestamp = nextResetTimestamp else { return nil }
+        let remaining = TimeInterval(timestamp) - now.timeIntervalSince1970
+        guard remaining > 0 else { return text(.resetPending) }
+
+        if remaining >= 86_400 {
+            return LocalizationCatalog.format(
+                .timeRemainingDaysHours, language: language,
+                Int(remaining / 86_400), Int(remaining.truncatingRemainder(dividingBy: 86_400) / 3_600)
+            )
+        }
+        if remaining >= 3_600 {
+            return LocalizationCatalog.format(
+                .timeRemainingHoursMinutes, language: language,
+                Int(remaining / 3_600), Int(remaining.truncatingRemainder(dividingBy: 3_600) / 60)
+            )
+        }
+        if remaining >= 60 {
+            return LocalizationCatalog.format(.timeRemainingMinutes, language: language, Int(remaining / 60))
+        }
+        return text(.timeRemainingLessThanMinute)
     }
 
     public var lastRefreshText: String? {
@@ -164,5 +185,9 @@ public struct MenuPresentation: Sendable {
 
     private var usageWindows: UsageWindowSelection {
         UsageFormatting.windows(in: snapshot?.primaryBucket)
+    }
+
+    private var nextResetTimestamp: Int64? {
+        (usageWindows.longer ?? usageWindows.fiveHour)?.resetsAt
     }
 }

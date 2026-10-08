@@ -75,20 +75,7 @@ struct UsagePopoverView: View {
                     .padding(.vertical, 2)
 
                 if presentation.nextResetText != nil || presentation.availableResetsText != nil {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        if let nextReset = presentation.nextResetText {
-                            Text(nextReset)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                        Spacer(minLength: 8)
-                        if let resetCount = presentation.availableResetsText {
-                            Text(resetCount)
-                                .lineLimit(1)
-                        }
-                    }
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.secondary)
+                    resetMetadata
                 }
 
                 if let fiveHourStatus = presentation.fiveHourStatusText {
@@ -127,6 +114,33 @@ struct UsagePopoverView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 14)
+    }
+
+    private var resetMetadata: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    if let nextReset = presentation.nextResetText {
+                        Text(nextReset)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    Spacer(minLength: 8)
+                    if let resetCount = presentation.availableResetsText {
+                        Text(resetCount)
+                            .lineLimit(1)
+                    }
+                }
+                if let countdown = presentation.resetCountdownText(at: context.date) {
+                    Text(countdown)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .font(.system(size: 12.5))
+            .foregroundStyle(.secondary)
+        }
     }
 
     private var preferencesFooter: some View {

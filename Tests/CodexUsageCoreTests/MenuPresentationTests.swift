@@ -143,6 +143,73 @@ struct MenuPresentationTests {
     }
 
     @Test
+    func resetCountdownUsesTheDisplayedWindowAndCurrentTime() {
+        let reset: Int64 = 1_800_000_000
+        let snapshot = makeSnapshot(
+            primary: RateLimitWindow(usedPercent: 6, windowDurationMins: 10_080, resetsAt: reset),
+            secondary: RateLimitWindow(usedPercent: 20, windowDurationMins: 300, resetsAt: reset - 100_000)
+        )
+        let presentation = MenuPresentation(
+            snapshot: snapshot, isRefreshing: false, error: nil,
+            appearance: .light, language: .zhHans
+        )
+        let now = Date(timeIntervalSince1970: TimeInterval(reset - 6 * 86_400 - 3 * 3_600))
+
+        #expect(presentation.resetCountdownText(at: now) == "剩余 6天 3小时")
+        #expect(presentation.resetCountdownText(at: now.addingTimeInterval(3_600)) == "剩余 6天 2小时")
+    }
+
+    @Test(arguments: [AppLanguage.english, .zhHans])
+    func resetCountdownFormatsShortDurationsAndNeverGoesNegative(language: AppLanguage) {
+        let reset: Int64 = 1_800_000_000
+        let presentation = MenuPresentation(
+            snapshot: makeSnapshot(
+                primary: RateLimitWindow(usedPercent: 20, windowDurationMins: 300, resetsAt: reset),
+                secondary: nil
+            ),
+            isRefreshing: false, error: nil, appearance: .light, language: language
+        )
+        let cases: [(TimeInterval, String, String)] = [
+            (86_400, "Time left: 1d 0h", "剩余 1天 0小时"),
+            (7_500, "Time left: 2h 5m", "剩余 2小时 5分钟"),
+            (3_600, "Time left: 1h 0m", "剩余 1小时 0分钟"),
+            (120, "Time left: 2m", "剩余 2分钟"),
+            (60, "Time left: 1m", "剩余 1分钟"),
+            (59, "Time left: <1m", "剩余不到1分钟"),
+            (0, "Reset pending", "等待重置"),
+            (-60, "Reset pending", "等待重置"),
+        ]
+        for (seconds, english, chinese) in cases {
+            let now = Date(timeIntervalSince1970: TimeInterval(reset) - seconds)
+            #expect(presentation.resetCountdownText(at: now) == (language == .zhHans ? chinese : english))
+        }
+    }
+
+    @Test
+    func resetCountdownHidesMissingResetTimesAndIgnoresRefreshTimeAndTimeZone() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000 - 120)
+        for snapshot in [nil, makeSnapshot(
+            primary: RateLimitWindow(usedPercent: 20, windowDurationMins: 10_080, resetsAt: nil),
+            secondary: RateLimitWindow(usedPercent: 10, windowDurationMins: 300, resetsAt: 1_800_000_000)
+        )] {
+            let presentation = MenuPresentation(
+                snapshot: snapshot, isRefreshing: false, error: nil,
+                appearance: .light, language: .english
+            )
+            #expect(presentation.resetCountdownText(at: now) == nil)
+        }
+        for offset in [0, 8 * 3_600, -7 * 3_600] {
+            let presentation = MenuPresentation(
+                snapshot: makePresentationSnapshot(usedPercent: 0, resetCount: 3),
+                isRefreshing: true, error: .timeout, appearance: .dark, language: .english,
+                timeZone: TimeZone(secondsFromGMT: offset)!
+            )
+            #expect(presentation.resetCountdownText(at: now) == "Time left: 2m")
+            #expect(presentation.availableResetsText == "(3)")
+        }
+    }
+
+    @Test
     func selectedAppearanceAndLanguageHaveExactlyOneCheckmark() {
         let presentation = MenuPresentation(
             snapshot: nil,
