@@ -42,18 +42,22 @@ struct PopoverRendering {
             let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)"
             try bitmap.representation(using: .png, properties: [:])!
                 .write(to: URL(fileURLWithPath: "\(output)/\(label).png"))
-            for (x, y) in [(0, 0), (bitmap.pixelsWide - 1, 0),
-                           (0, bitmap.pixelsHigh - 1),
-                           (bitmap.pixelsWide - 1, bitmap.pixelsHigh - 1)] {
-                if inset == 0 && bitmap.colorAt(x: x, y: y)!.alphaComponent < 0.99 {
-                    failures.append("\(label): content must remain opaque underneath the window mask")
+            // cacheDisplay can include the native mask after SwiftUI layout.
+            // Check opacity inside the rounded surface; its exterior corners
+            // are checked for transparency in the complete-frame render below.
+            for (x, y) in [(16, inset + 16), (bitmap.pixelsWide - 17, inset + 16),
+                           (16, bitmap.pixelsHigh - inset - 17),
+                           (bitmap.pixelsWide - 17, bitmap.pixelsHigh - inset - 17)] {
+                if bitmap.colorAt(x: x, y: y)!.alphaComponent < 0.99 {
+                    failures.append("\(label): visible content near a rounded corner must remain opaque")
                 }
             }
             if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
                 failures.append("\(label): interior background must remain opaque")
             }
-            if size.height - CGFloat(inset * 2) > 315 {
-                failures.append("\(label): excessive empty space, height \(size.height) > 315")
+            // The countdown adds one metadata line and a 4-point gap.
+            if size.height - CGFloat(inset * 2) > 335 {
+                failures.append("\(label): excessive empty space, height \(size.height) > 335")
             }
             if window.isOpaque || window.backgroundColor != .clear {
                 failures.append("\(label): window background fills the rounded corners")

@@ -5,6 +5,11 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case fiveHourRemaining
     case unlimited
     case nextReset
+    case timeRemainingDaysHours
+    case timeRemainingHoursMinutes
+    case timeRemainingMinutes
+    case timeRemainingLessThanMinute
+    case resetPending
     case additionalLimits
     case lastRefresh
     case availableReset
@@ -33,6 +38,11 @@ public enum LocalizationCatalog {
             .fiveHourRemaining: "5 小时剩余",
             .unlimited: "无限制",
             .nextReset: "下次重置：%@",
+            .timeRemainingDaysHours: "剩余 %d天 %d小时",
+            .timeRemainingHoursMinutes: "剩余 %d小时 %d分钟",
+            .timeRemainingMinutes: "剩余 %d分钟",
+            .timeRemainingLessThanMinute: "剩余不到1分钟",
+            .resetPending: "等待重置",
             .additionalLimits: "其他配额",
             .lastRefresh: "最近刷新：%@",
             .availableReset: "(%d)",
@@ -58,6 +68,11 @@ public enum LocalizationCatalog {
             .fiveHourRemaining: "5-hour remaining",
             .unlimited: "Unlimited",
             .nextReset: "Next reset: %@",
+            .timeRemainingDaysHours: "Time left: %dd %dh",
+            .timeRemainingHoursMinutes: "Time left: %dh %dm",
+            .timeRemainingMinutes: "Time left: %dm",
+            .timeRemainingLessThanMinute: "Time left: <1m",
+            .resetPending: "Reset pending",
             .additionalLimits: "Other allowances",
             .lastRefresh: "Last refreshed: %@",
             .availableReset: "(%d)",
