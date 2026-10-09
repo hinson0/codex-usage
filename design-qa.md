@@ -1,5 +1,18 @@
 # Codex Usage Design QA
 
+## Feedback Entry (1.3.0, 2026-10-09)
+
+- Scope: add `反馈` / `Feedback` in the bottom-left footer cell, alongside Quit. The native SwiftUI Link opens `https://github.com/hinson0/codex-usage/issues` in the default browser. It stays available during usage loading, refresh, and errors, independently of Sparkle availability.
+- Source: the existing production view, `docs/images/codex-usage-dual-window.png`, and the previous countdown captures. This is a scoped footer change using the existing 14-point action text, secondary SF Symbols, padding, and dividers.
+- Actual native evidence: `docs/images/qa/codex-usage-feedback-light-zh.png`, `docs/images/qa/codex-usage-feedback-dark-en.png`, and `docs/images/qa/codex-usage-feedback-menu-anchor.png`. Captured the production view in a real MenuBarExtra using synthetic usage and a no-network updater.
+- Combined comparison: opened the previous and new Light/Chinese and Dark/English captures together in one comparison input. All are 348 pixels wide at native 1× density. Normal content height changes from 331 to 332 points because the new footer divider participates in layout; it remains within the existing 335-point budget. Fixture reset dates differ because they are relative to capture time.
+- Fonts/spacing/colors/assets: feedback and Quit fit in equal-width cells without clipping or wrapping. The footer retains its separation from Refresh/Update. Light remains opaque white; Dark retains the native window background. Reused the native `bubble.left.and.bubble.right` SF Symbol. The usage hierarchy, progress bar, preferences, rounded corners, and status item keep their established appearance.
+- Copy/accessibility: the entry and its browser-opening tooltip/accessibility hint are localized in English and Simplified Chinese. The bundle-derived version remains attached to Quit.
+- Verification: the new localization expectations failed at runtime before production edits, then passed. The complete suite passes 43 registered tests (the opt-in live protocol test is skipped because no protocol code changed), four offscreen renders, release guards, and runner checks. The focused destination tests cover missing/loaded usage and authentication/timeout errors in both languages, without query parameters or fragments.
+- Native interaction: the real-menu fixture clicks the bottom-left feedback cell in refreshing, loaded Chinese, loaded English, and expanded-error states for both zero/10-point host padding. All eight clicks trigger the exact Issues URL. The fixture intercepts SwiftUI's openURL action to avoid launching browsers or submitting feedback. All 18 native states retain a 2-point menu gap, attached shadow, corner transparency, error resizing, and successful reopening.
+- Package validation: version `1.3.0 (23)` passes the release build with warnings as errors, packaging contracts, deep/strict signature verification, and packaged-app startup smoke test. Published `v1.2.0` was confirmed read-only before the minor-version bump. Local validation did not install the App, create tags, push, or publish a release.
+- Evidence limit: fixture captures omit the bundle version and live-account data. The click checks verify the Link and URL handoff; they do not submit a GitHub issue or test the user's default browser. No actionable P0/P1/P2 findings remain for this scope.
+
 ## Reset Countdown (1.2.0, 2026-10-08)
 
 - Scope: add the time remaining until the displayed reset below its existing timestamp. The screenshot's red box is an annotation, not UI. A separate line keeps the full date and positive reset count readable at the existing 348-point width. A local `TimelineView` updates the countdown every minute without issuing account requests.

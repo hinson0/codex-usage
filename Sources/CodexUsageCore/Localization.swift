@@ -23,6 +23,8 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case refreshNow
     case updateAvailable
     case checkForUpdates
+    case feedback
+    case feedbackHint
     case quit
     case loading
     case loginRequired
@@ -56,6 +58,8 @@ public enum LocalizationCatalog {
             .refreshNow: "立即刷新",
             .checkForUpdates: "检查更新…",
             .updateAvailable: "新版本",
+            .feedback: "反馈",
+            .feedbackHint: "在浏览器中打开 GitHub Issues",
             .quit: "退出",
             .loading: "正在读取 Codex 用量…",
             .loginRequired: "请先在 Codex 中登录",
@@ -86,6 +90,8 @@ public enum LocalizationCatalog {
             .refreshNow: "Refresh Now",
             .checkForUpdates: "Check for Updates…",
             .updateAvailable: "New Version",
+            .feedback: "Feedback",
+            .feedbackHint: "Open GitHub Issues in your browser",
             .quit: "Quit",
             .loading: "Loading Codex usage…",
             .loginRequired: "Sign in to Codex first",

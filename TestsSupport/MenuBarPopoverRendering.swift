@@ -17,6 +17,7 @@ private actor MenuBarRenderService: UsageService {
 @MainActor
 private final class SurfaceObservation: ObservableObject {
     weak var view: NSView?
+    var openedURL: URL?
 }
 
 // Independent measurement of the visible SwiftUI surface for screenshot checks.
@@ -58,6 +59,10 @@ struct MenuBarPopoverRendering: App {
             ContentSizedPopover {
                 UsagePopoverView(controller: controller, updater: updater)
                     .background(SurfaceProbe(observation: surface))
+                    .environment(\.openURL, OpenURLAction { url in
+                        surface.openedURL = url
+                        return .handled
+                    })
             }
             .padding(.vertical, inset)
         } label: {
@@ -81,8 +86,10 @@ struct MenuBarPopoverRendering: App {
             button.performClick(nil)
             try await Task.sleep(for: .milliseconds(100))
             try await capture(CommandLine.arguments.contains("--warm") ? "refreshing" : "loading")
+            try await checkFeedbackLink()
             try await waitForRefresh()
             try await capture("light-zh")
+            try await checkFeedbackLink()
             try captureStatusItem(button)
 
             controller.setAppearance(.dark)
@@ -91,11 +98,13 @@ struct MenuBarPopoverRendering: App {
             controller.setLanguage(.english)
             try await settle()
             try await capture("dark-en")
+            try await checkFeedbackLink()
 
             await service.setFailure(true)
             await controller.refresh()
             try await settle()
             try await capture("error-expanded")
+            try await checkFeedbackLink()
             await service.setFailure(false)
             await controller.refresh()
             try await settle()
@@ -123,6 +132,34 @@ struct MenuBarPopoverRendering: App {
 
     private func settle() async throws {
         try await Task.sleep(for: .milliseconds(200))
+    }
+
+    private func checkFeedbackLink() async throws {
+        let title = LocalizationCatalog.string(.feedback, language: controller.language)
+        guard let view = surface.view, let window = view.window else {
+            throw CheckFailure("Feedback surface is unavailable")
+        }
+        // Click the bottom-left footer cell. SwiftUI's plain links are not
+        // exposed through NSView.accessibilityChildren on every macOS SDK.
+        let point = view.convert(NSPoint(
+            x: view.bounds.width / 4,
+            y: view.isFlipped ? view.bounds.maxY - 26 : view.bounds.minY + 26
+        ), to: nil)
+        surface.openedURL = nil
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            guard let event = NSEvent.mouseEvent(
+                with: type, location: point, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil,
+                eventNumber: 0, clickCount: 1, pressure: 1
+            ) else { throw CheckFailure("Feedback click event is unavailable") }
+            NSApp.postEvent(event, atStart: false)
+        }
+        try await settle()
+        guard surface.openedURL?.absoluteString == "https://github.com/hinson0/codex-usage/issues" else {
+            throw CheckFailure("Feedback link did not open the project Issues page")
+        }
+        print("PASS: \(title) opens project Issues")
     }
 
     private func waitForRefresh() async throws {

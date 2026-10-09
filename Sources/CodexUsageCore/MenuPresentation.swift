@@ -85,6 +85,10 @@ public struct MenuPresentation: Sendable {
         canCheckForUpdates
     }
 
+    public var feedbackURL: URL {
+        URL(string: "https://github.com/hinson0/codex-usage/issues")!
+    }
+
     public var availableResetsText: String? {
         guard let count = snapshot?.availableResetCount, count > 0 else { return nil }
         let key: LocalizationKey = count == 1 ? .availableReset : .availableResets
