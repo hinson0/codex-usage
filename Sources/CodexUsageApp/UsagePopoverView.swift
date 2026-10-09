@@ -233,16 +233,33 @@ struct UsagePopoverView: View {
             Divider()
                 .padding(.horizontal, 20)
 
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                actionRow(
-                    title: presentation.text(.quit),
-                    symbol: "rectangle.portrait.and.arrow.right",
-                    trailing: AppVersion.current
-                )
+            HStack(spacing: 0) {
+                Link(destination: presentation.feedbackURL) {
+                    actionRow(
+                        title: presentation.text(.feedback),
+                        symbol: "bubble.left.and.bubble.right"
+                    )
+                }
+                .buttonStyle(.plain)
+                .help(presentation.text(.feedbackHint))
+                .accessibilityHint(presentation.text(.feedbackHint))
+                .frame(maxWidth: .infinity)
+
+                Divider()
+                    .frame(height: 24)
+
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    actionRow(
+                        title: presentation.text(.quit),
+                        symbol: "rectangle.portrait.and.arrow.right",
+                        trailing: AppVersion.current
+                    )
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }

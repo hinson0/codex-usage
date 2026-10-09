@@ -4,6 +4,35 @@ import Testing
 
 @Suite
 struct MenuPresentationTests {
+    @Test(arguments: [AppLanguage.english, .zhHans])
+    func feedbackEntryHasLocalizedCopy(language: AppLanguage) {
+        let presentation = MenuPresentation(
+            snapshot: nil, isRefreshing: true, error: .authenticationRequired,
+            appearance: .dark, language: language
+        )
+
+        #expect(presentation.text(.feedback) == (language == .zhHans ? "反馈" : "Feedback"))
+        #expect(presentation.text(.feedbackHint) == (
+            language == .zhHans ? "在浏览器中打开 GitHub Issues" : "Open GitHub Issues in your browser"
+        ))
+    }
+
+    @Test(arguments: [AppLanguage.english, .zhHans])
+    func feedbackEntryOpensProjectIssuesRegardlessOfUsageState(language: AppLanguage) {
+        for snapshot in [nil, makePresentationSnapshot(usedPercent: 27, resetCount: 0)] {
+            for error: UsageDisplayError? in [nil, .authenticationRequired, .timeout] {
+                let presentation = MenuPresentation(
+                    snapshot: snapshot, isRefreshing: true, error: error,
+                    appearance: .light, language: language, canCheckForUpdates: false
+                )
+
+                #expect(presentation.feedbackURL.absoluteString == "https://github.com/hinson0/codex-usage/issues")
+                #expect(presentation.feedbackURL.query == nil)
+                #expect(presentation.feedbackURL.fragment == nil)
+            }
+        }
+    }
+
     @Test
     func weeklyOnlyPresentationUsesOnePercentageAndHidesZeroResetCount() {
         let presentation = MenuPresentation(
