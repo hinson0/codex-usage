@@ -31,7 +31,7 @@ struct PopoverRendering {
             let controller = UsageController(
                 service: RenderUsageService(resetCount: creditState == 0 ? 0 : 3,
                     creditExpiresAt: creditState == 2 ? Int64(Date().timeIntervalSince1970) + 7 * 86_400 : nil),
-                preferences: PreferencesStore(defaults: defaults)
+                preferences: PreferencesStore(defaults: defaults), newsService: RenderNewsService()
             )
             controller.setAppearance(appearance)
             controller.setLanguage(language)
@@ -66,7 +66,7 @@ struct PopoverRendering {
                 failures.append("\(label): interior background must remain opaque")
             }
             // A positive credit count adds one metadata row; long localized dates may wrap.
-            let heightBudget: CGFloat = creditState == 0 ? 335 : 380
+            let heightBudget: CGFloat = creditState == 0 ? 510 : 560
             if size.height - CGFloat(inset * 2) > heightBudget {
                 failures.append("\(label): excessive empty space, height \(size.height) > \(heightBudget)")
             }

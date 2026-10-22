@@ -5,347 +5,220 @@ import SwiftUI
 struct UsagePopoverView: View {
     @ObservedObject var controller: UsageController
     @ObservedObject var updater: UpdateCoordinator
+    @Environment(\.openURL) private var openURL
 
     private var presentation: MenuPresentation {
-        MenuPresentation(
-            snapshot: controller.snapshot,
-            isRefreshing: controller.isRefreshing,
-            error: controller.displayError,
-            appearance: controller.appearance,
-            language: controller.language,
-            canCheckForUpdates: updater.canCheckForUpdates,
-            hasAvailableUpdate: updater.hasAvailableUpdate
-        )
+        MenuPresentation(snapshot: controller.snapshot, isRefreshing: controller.isRefreshing,
+                         error: controller.displayError, appearance: controller.appearance,
+                         language: controller.language, canCheckForUpdates: updater.canCheckForUpdates,
+                         hasAvailableUpdate: updater.hasAvailableUpdate)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            usageSection
+        VStack(alignment: .leading, spacing: 20) {
+            header
+            allowance
+            if presentation.availableResetsText != nil {
+                Divider()
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    HStack(alignment: .center, spacing: 12) {
+                        Label(LocalizationCatalog.format(
+                            (controller.snapshot?.availableResetCount ?? 0) == 1 ? .resetCreditCount : .resetCreditsCount,
+                            language: controller.language, controller.snapshot?.availableResetCount ?? 0),
+                              systemImage: "ticket")
+                        if let expiry = presentation.resetCreditExpiryText(at: context.date) {
+                            Divider().frame(height: 24)
+                            Label(LocalizationCatalog.format(.nextCreditExpiry, language: controller.language, expiry),
+                                  systemImage: "calendar")
+                        }
+                    }
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             Divider()
-                .padding(.horizontal, 20)
-            preferencesFooter
-            actionsSection
+            newsSection
         }
-        .frame(width: 348)
-        .background(popoverBackgroundColor)
+        .padding(20)
+        .frame(width: 400)
+        .background(controller.appearance == .dark ? Color(nsColor: .windowBackgroundColor) : .white)
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
-        .background(
-            PopoverAppearanceBridge(
-                appearanceName: controller.appearance.nativeAppearancePolicy.popoverName
-            )
-        )
+        .background(PopoverAppearanceBridge(
+            appearanceName: controller.appearance.nativeAppearancePolicy.popoverName))
         .onAppear {
             updater.checkForUpdateInformation()
             Task { await controller.refresh() }
         }
-        .onReceive(NotificationCenter.default.publisher(
-            for: NSLocale.currentLocaleDidChangeNotification
-        )) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             controller.notifySystemLocaleChanged()
         }
     }
 
-    private var popoverBackgroundColor: Color {
-        switch controller.appearance.nativeAppearancePolicy.backgroundStyle {
-        case .opaqueWhite:
-            .white
-        case .opaqueWindow:
-            Color(nsColor: .windowBackgroundColor)
+    private var header: some View {
+        HStack {
+            Text("Codex").font(.system(size: 23, weight: .bold))
+            Spacer()
+            Button {
+                Task { await controller.refresh(forceNews: true) }
+            } label: {
+                Image(systemName: "arrow.clockwise").font(.system(size: 19))
+            }
+            .buttonStyle(.plain)
+            .disabled(controller.isRefreshing)
+            .help(presentation.text(.refreshNow))
+            .accessibilityLabel(presentation.text(.refreshNow))
+            Divider().frame(height: 22).padding(.horizontal, 8)
+            Menu {
+                Menu(presentation.text(.appearance)) {
+                    ForEach(presentation.appearanceOptions, id: \.value) { option in
+                        selectionButton(option) { controller.setAppearance(option.value) }
+                    }
+                }
+                Menu(presentation.text(.language)) {
+                    ForEach(presentation.languageOptions, id: \.value) { option in
+                        selectionButton(option) { controller.setLanguage(option.value) }
+                    }
+                }
+                Divider()
+                Button(presentation.checkForUpdatesTitle) { updater.checkForUpdates() }
+                    .disabled(!presentation.isUpdateEnabled)
+                Button(presentation.text(.feedback)) { openURL(presentation.feedbackURL) }
+                Divider()
+                Button(presentation.text(.quit) + (AppVersion.current.map { " · " + $0 } ?? "")) {
+                    NSApplication.shared.terminate(nil)
+                }
+            } label: {
+                Image(systemName: "gearshape")
+                    .resizable().scaledToFit().frame(width: 21, height: 21)
+                    .foregroundStyle(updater.hasAvailableUpdate ? .green : .secondary)
+            }
+            .menuStyle(.borderlessButton)
+            .controlSize(.large)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(presentation.text(.settings))
+            .accessibilityLabel(presentation.text(.settings))
         }
     }
 
-    private var usageSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private var allowance: some View {
+        VStack(alignment: .leading, spacing: 16) {
             if let remaining = presentation.remainingPercent {
-                HStack(alignment: .firstTextBaseline, spacing: 16) {
-                    Text(presentation.text(.codexRemaining))
-                        .font(.system(size: 17, weight: .semibold))
-                    Spacer(minLength: 16)
-                    Text(presentation.usagePercentText)
-                        .font(.system(size: 23, weight: .bold))
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("\(remaining)%")
+                        .font(.system(size: 42, weight: .bold))
                         .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .foregroundStyle(.blue)
+                    Text(presentation.text(.remainingAllowance))
+                        .font(.system(size: 14)).foregroundStyle(.secondary)
                 }
-
-                ProgressView(value: Double(remaining), total: 100)
-                    .progressViewStyle(.linear)
-                    .tint(.blue)
-                    .scaleEffect(x: 1, y: 1.4, anchor: .center)
-                    .padding(.vertical, 2)
-
-                if presentation.nextResetText != nil {
-                    resetMetadata
-                }
-
-                if let fiveHourStatus = presentation.fiveHourStatusText {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(presentation.text(.fiveHourRemaining))
-                        Spacer(minLength: 8)
-                        Text(fiveHourStatus)
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.primary.opacity(0.08))
+                        Capsule().fill(Color.blue)
+                            .frame(width: geometry.size.width * Double(remaining) / 100)
                     }
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.secondary)
                 }
-                if presentation.availableResetsText != nil {
-                    TimelineView(.periodic(from: .now, by: 60)) { context in
-                        if let credits = presentation.resetCreditsText(at: context.date) {
-                            Text(credits)
-                                .font(.system(size: 12.5))
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                .frame(height: 8)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(presentation.text(.remainingAllowance))
+                .accessibilityValue("\(remaining)%")
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let reset = presentation.nextResetDateText {
+                            metadataRow(symbol: "clock", title: presentation.text(.allowanceRecovery)) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(reset)
+                                    if let countdown = presentation.resetCountdownText(at: context.date) {
+                                        Text(countdown).font(.system(size: 11)).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                        }
+                        metadataRow(symbol: "chart.bar.fill", title: presentation.text(.fiveHourRemaining)) {
+                            Text(presentation.fiveHourRemainingPercent.map { "\($0)%" }
+                                 ?? presentation.text(.unlimited))
                         }
                     }
                 }
             } else {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(presentation.text(.loading))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+                HStack {
+                    if controller.isRefreshing { ProgressView().controlSize(.small) }
+                    Text(presentation.text(.loading)).foregroundStyle(.secondary)
+                }.frame(minHeight: 70)
             }
-
             if let error = presentation.errorText {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .textSelection(.enabled)
-            }
-
-            if !presentation.displayedAdditionalBuckets.isEmpty {
-                ForEach(presentation.displayedAdditionalBuckets, id: \.limitId) { _ in
-                    EmptyView()
-                }
+                Text(error).font(.footnote).foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 14)
     }
 
-    private var resetMetadata: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { context in
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    if let nextReset = presentation.nextResetText {
-                        Text(nextReset)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+    private var newsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(presentation.text(.resetNews)).font(.system(size: 16, weight: .semibold))
+                Spacer()
+                Link("divin.cc ↗", destination: ResetNews.sourceURL)
+                    .font(.system(size: 13))
+            }
+            if let news = controller.resetNews {
+                metadataRow(symbol: "globe", title: presentation.text(.lastGlobalReset)) {
+                    Text(news.completedAt.map {
+                        LocalizationCatalog.dateTime($0, language: controller.language)
+                    } ?? presentation.text(.newsEmpty))
+                }
+                metadataRow(symbol: "clock", title: presentation.text(.latestForecast)) {
+                    if let forecast = news.forecast {
+                        TimelineView(.periodic(from: .now, by: 60)) { context in
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(news.forecastText(language: controller.language))
+                                    .foregroundStyle(.orange)
+                                Text(forecast.statusText(language: controller.language, now: context.date))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.orange)
+                                    .padding(.horizontal, 7).padding(.vertical, 3)
+                                    .background(Color.orange.opacity(0.10), in: Capsule())
+                            }
+                        }
+                    } else {
+                        Text(presentation.text(.newsNoForecast)).foregroundStyle(.secondary)
                     }
                 }
-                if let countdown = presentation.resetCountdownText(at: context.date) {
-                    Text(countdown)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-            }
-            .font(.system(size: 12.5))
-            .foregroundStyle(.secondary)
-        }
-    }
-
-    private var preferencesFooter: some View {
-        HStack(spacing: 0) {
-            Menu {
-                ForEach(presentation.appearanceOptions, id: \.value) { option in
-                    selectionButton(option) {
-                        controller.setAppearance(option.value)
-                    }
-                }
-            } label: {
-                preferenceCell(
-                    symbol: "circle.lefthalf.filled",
-                    summary: presentation.appearanceSummary
-                )
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize(horizontal: true, vertical: false)
-            .frame(maxWidth: .infinity)
-            .layoutPriority(1)
-
-            Divider()
-                .frame(height: 32)
-
-            Menu {
-                ForEach(presentation.languageOptions, id: \.value) { option in
-                    selectionButton(option) {
-                        controller.setLanguage(option.value)
-                    }
-                }
-            } label: {
-                preferenceCell(
-                    symbol: "globe",
-                    summary: presentation.languageSummary
-                )
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize(horizontal: true, vertical: false)
-            .frame(maxWidth: .infinity)
-            .layoutPriority(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(5)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(0.055))
-        )
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-    }
-
-    private var actionsSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Button {
-                    Task { await controller.refresh() }
-                } label: {
-                    compactActionCell(
-                        title: presentation.text(.refreshNow),
-                        symbol: "arrow.clockwise"
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(controller.isRefreshing)
-
-                Divider()
-                    .frame(height: 32)
-
-                Button {
-                    updater.checkForUpdates()
-                } label: {
-                    compactActionCell(
-                        title: presentation.checkForUpdatesTitle,
-                        symbol: "arrow.down.circle",
-                        titleColor: presentation.hasAvailableUpdate ? .green : .primary
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(!presentation.isUpdateEnabled)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(5)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.primary.opacity(0.055))
-            )
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
-
-            Divider()
-                .padding(.horizontal, 20)
-
-            HStack(spacing: 0) {
-                Link(destination: presentation.feedbackURL) {
-                    actionRow(
-                        title: presentation.text(.feedback),
-                        symbol: "bubble.left.and.bubble.right"
-                    )
-                }
-                .buttonStyle(.plain)
-                .help(presentation.text(.feedbackHint))
-                .accessibilityHint(presentation.text(.feedbackHint))
-                .frame(maxWidth: .infinity)
-
-                Divider()
-                    .frame(height: 24)
-
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    actionRow(
-                        title: presentation.text(.quit),
-                        symbol: "rectangle.portrait.and.arrow.right",
-                        trailing: AppVersion.current
-                    )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-        }
-    }
-
-    private func preferenceCell(symbol: String, summary: String) -> some View {
-        HStack(spacing: 9) {
-            Image(systemName: symbol)
-                .font(.system(size: 13))
-                .frame(width: 16)
-            Text(summary)
-                .font(.system(size: 12.5, weight: .medium))
-                .lineLimit(1)
-            Image(systemName: "chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .foregroundStyle(.primary)
-        .contentShape(Rectangle())
-        .frame(minHeight: 36)
-        .padding(.horizontal, 8)
-    }
-
-    private func selectionButton<Value>(
-        _ option: MenuOption<Value>,
-        action: @escaping () -> Void
-    ) -> some View where Value: Equatable & Sendable {
-        Button(action: action) {
-            if option.isSelected {
-                Label(option.title, systemImage: "checkmark")
             } else {
-                Text(option.title)
+                Text(presentation.text(controller.newsFailed ? .newsUnavailable : .newsLoading))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
             }
-        }
-    }
-
-    private func actionRow(
-        title: String,
-        symbol: String,
-        trailing: String? = nil
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 14))
-                .frame(width: 18)
-                .foregroundStyle(.secondary)
-            Text(title)
-                .font(.system(size: 14))
-            Spacer()
-            if let trailing {
-                Text(trailing)
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(.tertiary)
+            if controller.newsFailed && controller.resetNews != nil {
+                Text(presentation.text(.newsStale)).font(.system(size: 11)).foregroundStyle(.orange)
             }
+            Divider()
+            Text(presentation.text(.newsSourceNote))
+                .font(.system(size: 10.5)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .contentShape(Rectangle())
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
     }
 
-    private func compactActionCell(
-        title: String, symbol: String, titleColor: Color = .primary
-    ) -> some View {
-        HStack(spacing: 9) {
-            Image(systemName: symbol)
-                .font(.system(size: 13))
-                .frame(width: 16)
+    private func metadataRow<Content: View>(symbol: String, title: String,
+                                            @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 15)).frame(width: 18)
                 .foregroundStyle(.secondary)
-            Text(title)
-                .foregroundStyle(titleColor)
-                .font(.system(size: 12.5, weight: .medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+            Text(title).foregroundStyle(.secondary).frame(width: 112, alignment: .leading)
+            content().frame(maxWidth: .infinity, alignment: .leading)
         }
-        .foregroundStyle(.primary)
-        .contentShape(Rectangle())
-        .frame(maxWidth: .infinity, minHeight: 36)
-        .padding(.horizontal, 8)
+        .font(.system(size: 12.5))
+        .fixedSize(horizontal: false, vertical: true)
     }
 
+    private func selectionButton<Value>(_ option: MenuOption<Value>, action: @escaping () -> Void) -> some View
+    where Value: Equatable & Sendable {
+        Button(action: action) {
+            if option.isSelected { Label(option.title, systemImage: "checkmark") }
+            else { Text(option.title) }
+        }
+    }
 }
 
 private struct PopoverAppearanceBridge: NSViewRepresentable {

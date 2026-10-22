@@ -1,5 +1,22 @@
 # Codex Usage Design QA
 
+## Reset news and grouped layout (1.5.0, 2026-10-22)
+
+- Selected reference: `docs/images/qa/codex-usage-reset-news-selected.png`, explicitly selected by the user. Native SwiftUI implementation, not a web prototype. Earlier targets below are historical.
+- Evidence: `docs/images/qa/codex-usage-reset-news-light-zh.png` and `docs/images/qa/codex-usage-reset-news-dark-en.png`. Opened the selected reference and both native fixture captures together in one comparison input, then repeated after fixes. Fixture percentages, credits and account-reset dates are not live-account evidence.
+- First-pass findings: P2 progress lost its blue accent in inactive native rendering; P2 credits were still a single metadata sentence instead of separated count/expiry. Fixed the progress with a semantic accessible SwiftUI progress track and split the credit row with a divider and native calendar symbol. Recaptured and compared after those fixes.
+- Fonts/typography: native SF, 23-point header, 42-point blue allowance, 12.5-point rows. Long English dates wrap rather than truncate. Full years and local date formatting deliberately retain date precision; the forecast badge and account countdown occupy a second line at this native width.
+- Spacing/layout: 400-point surface with 20-point padding, grouped sections and separators. Header contains refresh and settings; lower button grids have been removed. Twelve fixture renders cover light Chinese / dark English, no credits / count only / expiry, and zero / ten-point native insets. Rounded-mask, opacity and resize checks pass. Forecast + credits uses 488 points in Chinese and 503 in English on this host, excluding native insets.
+- Colors/tokens: blue allowance and progress, secondary metadata, amber forecast and pending state, opaque white/native dark surfaces. Menu-bar contrast remains controlled by macOS.
+- Image quality: standard SF Symbols only, no added raster assets in the shipped app. The selected design is kept as documentation. P3: native menu rendering makes the settings symbol smaller than the concept; label and tooltip remain present.
+- Copy/content: “额度恢复” avoids assuming every longer window is weekly. Five-hour percentage remains visible when supplied, otherwise unlimited. Positive credits only. Public latest completed reset is separate from scheduled forecast; credit issuance and other tools are excluded. Pending forecasts are never converted to completed by the clock. Source link and local-time/public-announcement note are visible. Local time replaces the concept's Beijing-only footer to agree with account dates worldwide.
+- Data verification: focused tests observed RED before implementation, then passed. Five news tests passed including an opt-in read-only request to the real public endpoint. Full suite: 52 registered tests passed (live integration tests skipped by default), plus rendering and supporting release/runner checks. Release build with warnings-as-errors, package checks, strict deep codesign verification and startup smoke test pass for 1.5.0 (25). No Codex protocol changes or reset redemption.
+- Native interaction verification: the direct app-selection tool could not disambiguate menu-bar installations, so the existing fixture executable verified the actual MenuBarExtra instead. Adapted its old footer-click test to observe the opened native Settings menu and invoke Feedback by localized item title. Feedback uses the view's OpenURL action and the fixture intercepts the destination without opening a browser. Both native-inset runs passed, including feedback, loading/loaded, light/dark, language switches, expanded errors/recovery and three reopen cycles. Menu gap remains 2 points, with no excess native frame or clipped shadow. No installed-App replacement was performed.
+- No remaining P0/P1/P2 findings in the inspected native captures. P3: compact native settings symbol differs slightly from the large concept glyph. Source and account dates use different fixture data; comparisons assess layout and semantics, not live-account values.
+
+final result: passed
+
+
 ## Reset Credit Expiry (1.4.0, 2026-10-22)
 
 - Scope: implement the user's selected second design. Move the positive reset-credit count from the reset timestamp's trailing edge into its own row below the five-hour status and above preferences. Show `重置券 3 张 · 最近到期 …` / `3 reset credits · Expires …`; missing expiry leaves only the count, and zero credits hides the entire row. The menu-bar suffix is unchanged.
