@@ -6,7 +6,7 @@ import SwiftUI
 @MainActor
 final class UpdateCoordinator: ObservableObject {
     let canCheckForUpdates = true
-    let hasAvailableUpdate = false
+    @Published var hasAvailableUpdate = false
     func checkForUpdateInformation() {}
     func checkForUpdates() {}
 }

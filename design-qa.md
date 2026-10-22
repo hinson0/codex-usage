@@ -202,3 +202,10 @@ final result: passed
 - No login button or authorization flow was added. This reflects Codex App Server authentication, not independent detection of the ChatGPT chat UI session.
 - Focused regression tests cover authentication loss, transient failures, recovery, and localized copy. Rendering fixtures cover both languages; the light Chinese login-required screenshot was visually inspected for placement and clipping.
 - Screenshot: [Login required](docs/images/codex-usage-login-required.png).
+
+## Visible Green Settings Icon — 1.5.3 (2026-10-22)
+
+- Reproduced the previous failure with a live-changing rendering fixture: setting update availability to true produced no green pixels in the settings-icon region in either appearance.
+- Native Menu label rendering discarded the label's foreground color. The menu now keeps its original label geometry and interaction, with a noninteractive, accessibility-hidden icon overlay that draws the availability color over the popover background.
+- Pixel assertions verify green on discovery and neutral on clearing, in both Light and Dark. Screenshots were visually inspected; header geometry is preserved. These fixtures simulate update availability and do not constitute a live Sparkle discovery/install test.
+- [Light update available](docs/images/codex-usage-update-light.png) · [Dark update available](docs/images/codex-usage-update-dark.png).
