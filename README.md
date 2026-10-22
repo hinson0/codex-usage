@@ -93,8 +93,12 @@ and notarization can remove that warning properly.
 
 - macOS 13 or later.
 - Apple Silicon or Intel Mac supported by the final Swift build.
-- Codex CLI or the ChatGPT/Codex desktop app installed.
+- Codex CLI, or a ChatGPT desktop app that includes the Codex executable, installed.
 - A ChatGPT account already signed in to Codex.
+
+No separate CLI installation is needed when ChatGPT includes Codex. The app
+checks both the current `codex-cli/bin/codex` bundle location and the older
+`codex` location under `/Applications/ChatGPT.app/Contents/Resources`.
 
 ### License
 

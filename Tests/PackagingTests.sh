@@ -38,8 +38,8 @@ iconutil --convert iconset --output "$iconset_check/CodexUsage.iconset" "$icon" 
   || fail "Application icon is missing its 1024-pixel representation"
 assert_equal "$(plutil -extract CFBundleIdentifier raw "$info")" "local.codexusage.menubar" "Bundle identifier"
 assert_equal "$(plutil -extract CFBundleExecutable raw "$info")" "CodexUsage" "Bundle executable"
-assert_equal "$(plutil -extract CFBundleShortVersionString raw "$info")" "1.5.0" "Short version"
-assert_equal "$(plutil -extract CFBundleVersion raw "$info")" "25" "Build number"
+assert_equal "$(plutil -extract CFBundleShortVersionString raw "$info")" "1.5.1" "Short version"
+assert_equal "$(plutil -extract CFBundleVersion raw "$info")" "26" "Build number"
 assert_equal "$(plutil -extract LSUIElement raw "$info")" "true" "Menu-bar-only flag"
 assert_equal "$(plutil -extract LSMinimumSystemVersion raw "$info")" "13.0" "Minimum macOS version"
 [[ -n "$(plutil -extract SUFeedURL raw "$info")" ]] || fail "Sparkle feed URL is empty"
@@ -48,9 +48,9 @@ assert_equal "$(printf '%s' "$public_key" | base64 -D | wc -c | tr -d ' ')" "32"
 assert_equal "$(plutil -extract SUEnableAutomaticChecks raw "$info")" "true" "Automatic update checks"
 assert_equal "$(plutil -extract SUAutomaticallyUpdate raw "$info")" "false" "Unattended update installation"
 assert_equal "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$info")" "true" "Pre-extraction verification"
-otool -L "$executable" | grep -Fq '@rpath/Sparkle.framework/' \
+otool -L "$executable" | grep -F '@rpath/Sparkle.framework/' >/dev/null \
   || fail "Executable does not link Sparkle through @rpath"
-otool -l "$executable" | grep -Fq '@loader_path/../Frameworks' \
+otool -l "$executable" | grep -F '@loader_path/../Frameworks' >/dev/null \
   || fail "Executable is missing the embedded-framework rpath"
 codesign --verify --deep --strict "$framework" \
   || fail "Embedded Sparkle signature is invalid"

@@ -144,11 +144,16 @@ struct UsagePopoverView: View {
                 }
             } else {
                 HStack {
-                    if controller.isRefreshing { ProgressView().controlSize(.small) }
-                    Text(presentation.text(.loading)).foregroundStyle(.secondary)
+                    if let error = presentation.errorText {
+                        Text(error).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                    } else {
+                        if controller.isRefreshing { ProgressView().controlSize(.small) }
+                        Text(presentation.text(.loading)).foregroundStyle(.secondary)
+                    }
                 }.frame(minHeight: 70)
             }
-            if let error = presentation.errorText {
+            if presentation.remainingPercent != nil, let error = presentation.errorText {
                 Text(error).font(.footnote).foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
             }

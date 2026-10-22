@@ -89,8 +89,12 @@ open dist/CodexUsage.app
 
 - macOS 13 或更高版本。
 - 最终 Swift 构建支持的 Apple Silicon 或 Intel Mac。
-- 已安装 Codex CLI 或 ChatGPT/Codex 桌面 App。
+- 已安装 Codex CLI，或包含 Codex 可执行程序的 ChatGPT 桌面 App。
 - ChatGPT 账户已经登录 Codex。
+
+ChatGPT 已内置 Codex 时，无需另装 CLI。程序会检查
+`/Applications/ChatGPT.app/Contents/Resources` 下的新版
+`codex-cli/bin/codex` 路径和旧版 `codex` 路径。
 
 ### 开源协议
 
