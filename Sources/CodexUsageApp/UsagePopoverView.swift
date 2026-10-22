@@ -91,12 +91,21 @@ struct UsagePopoverView: View {
             } label: {
                 Image(systemName: "gearshape")
                     .resizable().scaledToFit().frame(width: 21, height: 21)
-                    .foregroundStyle(updater.hasAvailableUpdate ? .green : .secondary)
             }
             .menuStyle(.borderlessButton)
             .controlSize(.large)
             .menuIndicator(.hidden)
             .fixedSize()
+            // The native Menu recolors its label. Draw the status icon above it
+            // while leaving clicks and accessibility on the original menu.
+            .overlay {
+                Image(systemName: "gearshape")
+                    .resizable().scaledToFit().frame(width: 21, height: 21)
+                    .foregroundStyle(updater.hasAvailableUpdate ? .green : .secondary)
+                    .background(controller.appearance == .dark ? Color(nsColor: .windowBackgroundColor) : .white)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             .help(presentation.text(.settings))
             .accessibilityLabel(presentation.text(.settings))
         }

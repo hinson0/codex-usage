@@ -38,8 +38,9 @@ struct PopoverRendering {
             controller.setAppearance(appearance)
             controller.setLanguage(language)
             await controller.refresh()
+            let updater = UpdateCoordinator()
             let host = NSHostingView(rootView: UsagePopoverView(
-                controller: controller, updater: UpdateCoordinator()
+                controller: controller, updater: updater
             ).padding(.vertical, CGFloat(inset)))
             let size = host.fittingSize
             let window = NSWindow(
@@ -54,6 +55,36 @@ struct PopoverRendering {
             let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)-credits\(creditState)"
             try bitmap.representation(using: .png, properties: [:])!
                 .write(to: URL(fileURLWithPath: "\(output)/\(label).png"))
+            if creditState == 0 && inset == 0 {
+                for available in [true, false] {
+                    updater.hasAvailableUpdate = available
+                    try await Task.sleep(for: .milliseconds(100))
+                    host.layoutSubtreeIfNeeded()
+                    let updateBitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds)!
+                    host.cacheDisplay(in: host.bounds, to: updateBitmap)
+                    let state = available ? "available" : "cleared"
+                    try updateBitmap.representation(using: .png, properties: [:])!
+                        .write(to: URL(fileURLWithPath: "\(output)/\(appearance.rawValue)-update-\(state).png"))
+                    // Check only the settings icon, not the blue allowance or news text.
+                    let scale = Double(updateBitmap.pixelsWide) / size.width
+                    var greenPixels = 0
+                    for x in Int(350 * scale)..<Int(385 * scale) {
+                        for y in Int(15 * scale)..<Int(55 * scale) {
+                            let color = updateBitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+                            if color.greenComponent > color.redComponent + 0.12
+                                && color.greenComponent > color.blueComponent + 0.07 {
+                                greenPixels += 1
+                            }
+                        }
+                    }
+                    if available && greenPixels < 10 {
+                        failures.append("\(appearance.rawValue): available update must render a green settings icon")
+                    }
+                    if !available && greenPixels != 0 {
+                        failures.append("\(appearance.rawValue): settings icon must return to neutral after update clears")
+                    }
+                }
+            }
             // cacheDisplay can include the native mask after SwiftUI layout.
             // Check opacity inside the rounded surface; its exterior corners
             // are checked for transparency in the complete-frame render below.
