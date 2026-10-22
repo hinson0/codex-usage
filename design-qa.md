@@ -194,3 +194,11 @@ final result: passed
 - This supersedes the earlier availability-label wording. Existing screenshots predate this change; automated tests verify localized text but do not establish rendered color or live feed behavior.
 
 - Version-only verification release `1.1.3 (15)` allows installed `1.1.2` to detect a newer signed release and verify the green notice without clicking Check for Updates. No runtime or layout changes.
+
+## Login-required state (2026-10-22)
+
+- When App Server reports authentication required, the allowance area shows `请先登录ChatGPT` in Simplified Chinese, or the existing English sign-in prompt. It does not show loading copy or duplicate the error below the area.
+- Authentication loss clears cached allowance and reset credits. A successful subsequent refresh restores usage. Transient failures retain cached data and their own error message.
+- No login button or authorization flow was added. This reflects Codex App Server authentication, not independent detection of the ChatGPT chat UI session.
+- Focused regression tests cover authentication loss, transient failures, recovery, and localized copy. Rendering fixtures cover both languages; the light Chinese login-required screenshot was visually inspected for placement and clipping.
+- Screenshot: [Login required](docs/images/codex-usage-login-required.png).

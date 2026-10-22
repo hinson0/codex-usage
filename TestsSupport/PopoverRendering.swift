@@ -24,12 +24,14 @@ struct PopoverRendering {
             (.dark, .english, 0, 2),
             (.light, .zhHans, 10, 2),
             (.dark, .english, 10, 2),
+            (.light, .zhHans, 0, -1),
+            (.dark, .english, 0, -1),
         ] {
             let suite = "PopoverRendering.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: suite)!
             defer { defaults.removePersistentDomain(forName: suite) }
             let controller = UsageController(
-                service: RenderUsageService(resetCount: creditState == 0 ? 0 : 3,
+                service: RenderUsageService(requiresLogin: creditState == -1, resetCount: creditState == 0 ? 0 : 3,
                     creditExpiresAt: creditState == 2 ? Int64(Date().timeIntervalSince1970) + 7 * 86_400 : nil),
                 preferences: PreferencesStore(defaults: defaults), newsService: RenderNewsService()
             )

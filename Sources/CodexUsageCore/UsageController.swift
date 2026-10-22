@@ -16,7 +16,7 @@ public enum UsageServiceError: Error, Equatable, Sendable, LocalizedError {
         case .timeout:
             return "Request timed out"
         case .authenticationRequired:
-            return "Sign in to Codex first"
+            return "Sign in to ChatGPT first"
         case .binaryMissing:
             return "Codex command-line tool not found"
         }
@@ -135,6 +135,9 @@ public final class UsageController: ObservableObject {
             displayError = nil
         } catch {
             displayError = UsageDisplayError(error)
+            if displayError == .authenticationRequired {
+                snapshot = nil
+            }
         }
     }
 

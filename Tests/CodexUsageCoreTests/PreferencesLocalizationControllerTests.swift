@@ -97,6 +97,33 @@ struct PreferencesLocalizationControllerTests {
 
     @Test
     @MainActor
+    func authenticationLossClearsUsageAndRefreshRecoversAfterLogin() async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 2))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        await controller.refresh()
+        #expect(controller.snapshot != nil)
+
+        await service.setError(.timeout)
+        await controller.refresh()
+        #expect(controller.snapshot != nil)
+        #expect(controller.displayError == .timeout)
+
+        await service.setError(.authenticationRequired)
+        await controller.refresh()
+        #expect(controller.snapshot == nil)
+        #expect(controller.displayError == .authenticationRequired)
+        #expect(!controller.isRefreshing)
+
+        await service.setError(nil)
+        await controller.refresh()
+        #expect(controller.snapshot != nil)
+        #expect(controller.displayError == nil)
+    }
+
+    @Test
+    @MainActor
     func controllerSerializesOverlappingRefreshes() async {
         let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0), readDelay: .milliseconds(80))
         let controller = UsageController(service: service, preferences: makeStore().store)
@@ -116,6 +143,9 @@ private actor FakeUsageService: UsageService {
     private let snapshot: UsageSnapshot
     private let readDelay: Duration
     private(set) var readCallCount = 0
+    private var error: UsageServiceError?
+
+    func setError(_ value: UsageServiceError?) { error = value }
 
     init(snapshot: UsageSnapshot, readDelay: Duration = .zero) {
         self.snapshot = snapshot
@@ -124,6 +154,7 @@ private actor FakeUsageService: UsageService {
 
     func readRateLimits() async throws -> UsageSnapshot {
         readCallCount += 1
+        if let error { throw error }
         if readDelay > .zero {
             try await Task.sleep(for: readDelay)
         }

@@ -271,7 +271,7 @@ struct MenuPresentationTests {
             language: .english
         )
 
-        #expect(chinese.errorText == "请先在 Codex 中登录")
+        #expect(chinese.errorText == "请先登录ChatGPT")
         #expect(english.errorText == "Codex command-line tool not found")
     }
 

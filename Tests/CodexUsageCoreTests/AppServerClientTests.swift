@@ -5,6 +5,18 @@ import Testing
 @Suite
 struct AppServerClientTests {
     @Test
+    func binaryLocatorFindsBundledCLIWithoutStandaloneInstallation() {
+        let bundledPath = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
+        let locator = CodexBinaryLocator(
+            environment: ["PATH": "/usr/bin:/bin"],
+            homeDirectory: URL(fileURLWithPath: "/home"),
+            isExecutable: { $0 == bundledPath }
+        )
+
+        #expect(locator.locate()?.path == bundledPath)
+    }
+
+    @Test
     func binaryLocatorUsesDocumentedPrecedence() {
         let executablePaths: Set<String> = [
             "/override/codex",
