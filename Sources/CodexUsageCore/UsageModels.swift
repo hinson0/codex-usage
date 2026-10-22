@@ -111,10 +111,26 @@ public struct RateLimitBucket: Codable, Equatable, Sendable {
     }
 }
 
+// Deliberately excludes credit identifiers and redemption data.
+public struct ResetCredit: Codable, Equatable, Sendable {
+    public let status: String?
+    public let resetType: String?
+    public let expiresAt: Int64?
+
+    public init(status: String?, resetType: String?, expiresAt: Int64?) {
+        self.status = status
+        self.resetType = resetType
+        self.expiresAt = expiresAt
+    }
+}
+
 public struct ResetCreditsSummary: Codable, Equatable, Sendable {
     public let availableCount: Int
 
-    public init(availableCount: Int) {
+    public let credits: [ResetCredit]?
+
+    public init(availableCount: Int, credits: [ResetCredit]? = nil) {
+        self.credits = credits
         self.availableCount = availableCount
     }
 }
@@ -142,6 +158,7 @@ public struct UsageSnapshot: Equatable, Sendable {
     public let primaryBucket: RateLimitBucket?
     public let additionalBuckets: [RateLimitBucket]
     public let availableResetCount: Int
+    public let resetCredits: [ResetCredit]
     public let refreshedAt: Date
 
     public init(response: RateLimitsResponse, refreshedAt: Date) {
@@ -152,6 +169,7 @@ public struct UsageSnapshot: Equatable, Sendable {
             .map(\.value)
             .sorted { $0.limitId < $1.limitId }
         availableResetCount = max(0, response.rateLimitResetCredits?.availableCount ?? 0)
+        resetCredits = response.rateLimitResetCredits?.credits ?? []
         self.refreshedAt = refreshedAt
     }
 }

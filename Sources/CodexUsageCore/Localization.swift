@@ -14,6 +14,9 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case lastRefresh
     case availableReset
     case availableResets
+    case resetCreditCount
+    case resetCreditsCount
+    case nextCreditExpiry
     case appearance
     case light
     case dark
@@ -49,6 +52,9 @@ public enum LocalizationCatalog {
             .lastRefresh: "最近刷新：%@",
             .availableReset: "(%d)",
             .availableResets: "(%d)",
+            .resetCreditCount: "重置券 %d 张",
+            .resetCreditsCount: "重置券 %d 张",
+            .nextCreditExpiry: "最近到期 %@",
             .appearance: "外观",
             .light: "浅色",
             .dark: "深色",
@@ -81,6 +87,9 @@ public enum LocalizationCatalog {
             .lastRefresh: "Last refreshed: %@",
             .availableReset: "(%d)",
             .availableResets: "(%d)",
+            .resetCreditCount: "%d reset credit",
+            .resetCreditsCount: "%d reset credits",
+            .nextCreditExpiry: "Expires %@",
             .appearance: "Appearance",
             .light: "Light",
             .dark: "Dark",

@@ -95,6 +95,33 @@ public struct MenuPresentation: Sendable {
         return LocalizationCatalog.format(key, language: language, count)
     }
 
+    public func resetCreditsText(at now: Date) -> String? {
+        guard let snapshot, snapshot.availableResetCount > 0 else { return nil }
+        let count = LocalizationCatalog.format(
+            snapshot.availableResetCount == 1 ? .resetCreditCount : .resetCreditsCount,
+            language: language, snapshot.availableResetCount
+        )
+        let expiry = snapshot.resetCredits
+            .filter { $0.status == "available" && $0.resetType == "codexRateLimits" }
+            .compactMap(\.expiresAt)
+            .filter { TimeInterval($0) > now.timeIntervalSince1970 }
+            .min()
+        guard let expiry else { return count }
+        let date = Date(timeIntervalSince1970: TimeInterval(expiry))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: language.resolved() == .zhHans ? "zh_Hans_CN" : "en_US")
+        formatter.timeZone = timeZone
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
+        formatter.dateFormat = language.resolved() == .zhHans
+            ? (sameYear ? "M月d日 HH:mm" : "yyyy年M月d日 HH:mm")
+            : (sameYear ? "MMM d, HH:mm" : "MMM d yyyy, HH:mm")
+        return count + " · " + LocalizationCatalog.format(
+            .nextCreditExpiry, language: language, formatter.string(from: date)
+        )
+    }
+
     public var nextResetText: String? {
         guard let timestamp = nextResetTimestamp else { return nil }
         let date = LocalizationCatalog.dateTime(

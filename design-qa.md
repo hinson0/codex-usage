@@ -1,5 +1,16 @@
 # Codex Usage Design QA
 
+## Reset Credit Expiry (1.4.0, 2026-10-22)
+
+- Scope: implement the user's selected second design. Move the positive reset-credit count from the reset timestamp's trailing edge into its own row below the five-hour status and above preferences. Show `重置券 3 张 · 最近到期 …` / `3 reset credits · Expires …`; missing expiry leaves only the count, and zero credits hides the entire row. The menu-bar suffix is unchanged.
+- Data: inspect only available `codexRateLimits` credit details and choose the earliest future expiry returned by the backend. Missing/null/empty details and non-expiring credits fall back to count only. The backend can cap its detail list; this is the earliest known expiry, not a guarantee about unreturned credits. No credit IDs are decoded or persisted and no redemption operation is added.
+- Time: use the local time zone, include the year when it differs from the current year, and re-evaluate the expiry once per minute without account requests. An expired date disappears; the server-provided count remains until the next refresh.
+- Visual evidence: `docs/images/qa/codex-usage-credit-expiry-light-zh.png`, `docs/images/qa/codex-usage-credit-expiry-dark-en.png`, and `docs/images/qa/codex-usage-credit-count-only-light-zh.png`. Compared the selected concept and both actual native SwiftUI renders in one viewing input. Placement, plain metadata style, existing controls, and the compact single surface match the selected direction. Dates and percentages are fixture values.
+- Geometry: twelve renders cover Light/Chinese and Dark/English, zero/10-point native padding, and no-credit/count-only/expiry states. No-credit content remains 348 × 332 points; a positive-credit row makes it 348 × 359. Long localized dates may wrap instead of clipping. Existing corner, opacity, and resize assertions pass.
+- Verification: the focused expiry test failed to compile before production code existed, then passed. The full 47-test suite, twelve rendering cases, read-only live App Server integration, warnings-as-errors release build, packaging contracts, deep/strict codesign verification, and packaged-app startup smoke test pass. The first render build was retried after a concurrent whitespace edit; packaging expectations were updated from the published 1.3.0 to 1.4.0 (24). No live reset was consumed.
+- Review: independent Standards and Spec reviews found no blocking issues. Standards noted only an optional naming improvement for numeric fixture states. Local changes are not published or installed.
+- Evidence limit: these are offscreen NSHostingView renders, not installed-app MenuBarExtra screenshots. The inactive host uses a gray progress bar and omits the bundle version. This does not establish update delivery or installation.
+
 ## Feedback Entry (1.3.0, 2026-10-09)
 
 - Scope: add `反馈` / `Feedback` in the bottom-left footer cell, alongside Quit. The native SwiftUI Link opens `https://github.com/hinson0/codex-usage/issues` in the default browser. It stays available during usage loading, refresh, and errors, independently of Sparkle availability.

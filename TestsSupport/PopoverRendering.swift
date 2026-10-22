@@ -11,17 +11,27 @@ struct PopoverRendering {
         let output = CommandLine.arguments[1]
         // A real 1.1.5 MenuBarExtra has 10-point native padding above/below
         // the SwiftUI surface. The old zero-inset host could not catch the bug.
-        for (appearance, language, inset) in [
-            (AppAppearance.light, AppLanguage.zhHans, 0),
-            (.dark, .english, 0),
-            (.light, .zhHans, 10),
-            (.dark, .english, 10),
+        for (appearance, language, inset, creditState) in [
+            (AppAppearance.light, AppLanguage.zhHans, 0, 0),
+            (.dark, .english, 0, 0),
+            (.light, .zhHans, 10, 0),
+            (.dark, .english, 10, 0),
+            (.light, .zhHans, 0, 1),
+            (.dark, .english, 0, 1),
+            (.light, .zhHans, 10, 1),
+            (.dark, .english, 10, 1),
+            (.light, .zhHans, 0, 2),
+            (.dark, .english, 0, 2),
+            (.light, .zhHans, 10, 2),
+            (.dark, .english, 10, 2),
         ] {
             let suite = "PopoverRendering.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: suite)!
             defer { defaults.removePersistentDomain(forName: suite) }
             let controller = UsageController(
-                service: RenderUsageService(), preferences: PreferencesStore(defaults: defaults)
+                service: RenderUsageService(resetCount: creditState == 0 ? 0 : 3,
+                    creditExpiresAt: creditState == 2 ? Int64(Date().timeIntervalSince1970) + 7 * 86_400 : nil),
+                preferences: PreferencesStore(defaults: defaults)
             )
             controller.setAppearance(appearance)
             controller.setLanguage(language)
@@ -39,7 +49,7 @@ struct PopoverRendering {
             host.layoutSubtreeIfNeeded()
             let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds)!
             host.cacheDisplay(in: host.bounds, to: bitmap)
-            let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)"
+            let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)-credits\(creditState)"
             try bitmap.representation(using: .png, properties: [:])!
                 .write(to: URL(fileURLWithPath: "\(output)/\(label).png"))
             // cacheDisplay can include the native mask after SwiftUI layout.
@@ -55,9 +65,10 @@ struct PopoverRendering {
             if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
                 failures.append("\(label): interior background must remain opaque")
             }
-            // The countdown adds one metadata line and a 4-point gap.
-            if size.height - CGFloat(inset * 2) > 335 {
-                failures.append("\(label): excessive empty space, height \(size.height) > 335")
+            // A positive credit count adds one metadata row; long localized dates may wrap.
+            let heightBudget: CGFloat = creditState == 0 ? 335 : 380
+            if size.height - CGFloat(inset * 2) > heightBudget {
+                failures.append("\(label): excessive empty space, height \(size.height) > \(heightBudget)")
             }
             if window.isOpaque || window.backgroundColor != .clear {
                 failures.append("\(label): window background fills the rounded corners")

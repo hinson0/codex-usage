@@ -14,6 +14,7 @@ final class UpdateCoordinator: ObservableObject {
 struct RenderUsageService: UsageService {
     var usedPercent: Double = 24
     var resetCount: Int = 0
+    var creditExpiresAt: Int64? = nil
     var resetsAt: Int64 = Int64(Date().timeIntervalSince1970) + 6 * 86_400 + 3 * 3_600 + 300
 
     func readRateLimits() async throws -> UsageSnapshot {
@@ -26,7 +27,9 @@ struct RenderUsageService: UsageService {
                 )
             ),
             rateLimitsByLimitId: nil,
-            rateLimitResetCredits: ResetCreditsSummary(availableCount: resetCount)
+            rateLimitResetCredits: ResetCreditsSummary(availableCount: resetCount, credits: creditExpiresAt.map {
+                [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: $0)]
+            })
         ), refreshedAt: Date())
     }
 }

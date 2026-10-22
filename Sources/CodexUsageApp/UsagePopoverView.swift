@@ -74,7 +74,7 @@ struct UsagePopoverView: View {
                     .scaleEffect(x: 1, y: 1.4, anchor: .center)
                     .padding(.vertical, 2)
 
-                if presentation.nextResetText != nil || presentation.availableResetsText != nil {
+                if presentation.nextResetText != nil {
                     resetMetadata
                 }
 
@@ -86,6 +86,16 @@ struct UsagePopoverView: View {
                     }
                     .font(.system(size: 12.5))
                     .foregroundStyle(.secondary)
+                }
+                if presentation.availableResetsText != nil {
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        if let credits = presentation.resetCreditsText(at: context.date) {
+                            Text(credits)
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
             } else {
                 HStack(spacing: 10) {
@@ -124,11 +134,6 @@ struct UsagePopoverView: View {
                         Text(nextReset)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
-                    }
-                    Spacer(minLength: 8)
-                    if let resetCount = presentation.availableResetsText {
-                        Text(resetCount)
-                            .lineLimit(1)
                     }
                 }
                 if let countdown = presentation.resetCountdownText(at: context.date) {
