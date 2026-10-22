@@ -24,9 +24,9 @@ public struct CodexBinaryLocator: CodexBinaryLocating, Sendable {
         if let override = environment["CODEX_BIN"], !override.isEmpty {
             paths.append(override)
         }
-        paths.append(homeDirectory.appendingPathComponent(".local/bin/codex").path)
         paths.append("/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex")
         paths.append("/Applications/ChatGPT.app/Contents/Resources/codex")
+        paths.append(homeDirectory.appendingPathComponent(".local/bin/codex").path)
         paths.append("/opt/homebrew/bin/codex")
         paths.append("/usr/local/bin/codex")
         paths.append(contentsOf: (environment["PATH"] ?? "")

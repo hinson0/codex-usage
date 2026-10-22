@@ -16,6 +16,22 @@ struct AppServerClientTests {
         #expect(locator.locate()?.path == bundledPath)
     }
 
+    @Test(arguments: [
+        "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex",
+        "/Applications/ChatGPT.app/Contents/Resources/codex",
+    ])
+    func binaryLocatorPrefersChatGPTOverStandaloneCLI(bundledPath: String) {
+        let executablePaths: Set<String> = [
+            bundledPath, "/home/.local/bin/codex", "/opt/homebrew/bin/codex", "/path-bin/codex",
+        ]
+        let locator = CodexBinaryLocator(
+            environment: ["PATH": "/path-bin"],
+            homeDirectory: URL(fileURLWithPath: "/home"),
+            isExecutable: { executablePaths.contains($0) }
+        )
+        #expect(locator.locate()?.path == bundledPath)
+    }
+
     @Test
     func binaryLocatorUsesDocumentedPrecedence() {
         let executablePaths: Set<String> = [

@@ -92,7 +92,8 @@ open dist/CodexUsage.app
 - 已安装 Codex CLI，或包含 Codex 可执行程序的 ChatGPT 桌面 App。
 - ChatGPT 账户已经登录 Codex。
 
-ChatGPT 已内置 Codex 时，无需另装 CLI。程序会检查
+ChatGPT 已内置 Codex 时，无需另装 CLI。除非通过 `CODEX_BIN` 显式指定程序，
+否则优先使用 ChatGPT 内置程序，找不到时再使用独立 CLI。程序会检查
 `/Applications/ChatGPT.app/Contents/Resources` 下的新版
 `codex-cli/bin/codex` 路径和旧版 `codex` 路径。
 
