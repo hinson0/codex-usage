@@ -33,6 +33,12 @@ The status item starts with the app’s monochrome icon, followed by compact tex
 82%-94% (2)        Two banked resets available
 ```
 
+### Reset news
+
+The popover groups allowance, reset credits, and public reset news. Refresh updates both usage and announcements. The top-right Settings menu contains appearance, language, updates, feedback, and Quit.
+
+The latest completed global reset and forecast come from [AI Sentry](https://divin.cc/), not personal account history. Forecasts remain provisional; elapsed estimates show “Unconfirmed” until a completion record arrives. Dates use the local time zone. News refreshes every five minutes or on manual refresh; failures retain previous results with a stale-data notice. No Codex credentials are sent to this website.
+
 ### Target experience
 
 - Five-hour and longer-window remaining percentages when both limits exist.

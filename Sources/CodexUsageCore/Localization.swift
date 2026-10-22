@@ -1,6 +1,22 @@
 import Foundation
 
 public enum LocalizationKey: String, CaseIterable, Sendable {
+    case settings
+    case remainingAllowance
+    case allowanceRecovery
+    case resetNews
+    case lastGlobalReset
+    case latestForecast
+    case newsLoading
+    case newsUnavailable
+    case newsStale
+    case newsEmpty
+    case newsNoForecast
+    case newsTimeUnknown
+    case newsExpectedBefore
+    case newsExpectedAt
+    case newsAwaitingConfirmation
+    case newsSourceNote
     case codexRemaining
     case fiveHourRemaining
     case unlimited
@@ -39,6 +55,23 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
 public enum LocalizationCatalog {
     private static let strings: [AppLanguage: [LocalizationKey: String]] = [
         .zhHans: [
+            .settings: "设置",
+            .remainingAllowance: "剩余额度",
+            .allowanceRecovery: "额度恢复",
+            .resetNews: "重置动态",
+            .lastGlobalReset: "最近全局重置",
+            .latestForecast: "最新预告",
+            .newsLoading: "正在读取重置动态…",
+            .newsUnavailable: "重置动态暂不可用",
+            .newsStale: "更新失败 · 显示上次结果",
+            .newsEmpty: "暂无已完成记录",
+            .newsNoForecast: "暂无新预告",
+            .newsTimeUnknown: "时间待公布",
+            .newsExpectedBefore: "预计 %@前",
+            .newsExpectedAt: "预计 %@",
+            .newsAwaitingConfirmation: "待确认",
+            .newsSourceNote: "本地时间 · 公开公告，非账户记录",
+
             .codexRemaining: "Codex 剩余",
             .fiveHourRemaining: "5 小时剩余",
             .unlimited: "无限制",
@@ -74,6 +107,23 @@ public enum LocalizationCatalog {
             .errorPrefix: "错误：%@",
         ],
         .english: [
+            .settings: "Settings",
+            .remainingAllowance: "remaining",
+            .allowanceRecovery: "Allowance resets",
+            .resetNews: "Reset news",
+            .lastGlobalReset: "Last global reset",
+            .latestForecast: "Latest forecast",
+            .newsLoading: "Loading reset news…",
+            .newsUnavailable: "Reset news unavailable",
+            .newsStale: "Update failed · showing previous results",
+            .newsEmpty: "No completed reset recorded",
+            .newsNoForecast: "No new forecast",
+            .newsTimeUnknown: "Time not announced",
+            .newsExpectedBefore: "Expected before %@",
+            .newsExpectedAt: "Expected %@",
+            .newsAwaitingConfirmation: "Unconfirmed",
+            .newsSourceNote: "Local time · public announcements, not account history",
+
             .codexRemaining: "Codex remaining",
             .fiveHourRemaining: "5-hour remaining",
             .unlimited: "Unlimited",

@@ -33,3 +33,13 @@ struct RenderUsageService: UsageService {
         ), refreshedAt: Date())
     }
 }
+
+struct RenderNewsService: ResetNewsService {
+    func readNews() async throws -> ResetNews {
+        try ResetNews.decode(Data("""
+        [{"tool":"codex","eventType":"额度重置","eventStatus":"completed","sortTime":"2026-10-20T06:33:48Z"},
+         {"tool":"codex","eventType":"额度重置","eventStatus":"scheduled","sortTime":"2026-10-22T06:55:54Z",
+          "forecast":{"at":"2026-10-22T18:00:00Z","deadline":true}}]
+        """.utf8))
+    }
+}

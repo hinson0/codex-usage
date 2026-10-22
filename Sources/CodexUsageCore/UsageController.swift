@@ -51,14 +51,22 @@ public final class UsageController: ObservableObject {
     @Published public private(set) var appearance: AppAppearance
     @Published public private(set) var language: AppLanguage
 
+    @Published public private(set) var resetNews: ResetNews?
+    @Published public private(set) var newsFailed = false
+    @Published public private(set) var newsLoading = false
+    private let newsService: (any ResetNewsService)?
+    private var lastNewsAttempt: Date?
+
     private let service: any UsageService
     private let preferences: PreferencesStore
     private var operationInProgress = false
 
     public init(
         service: any UsageService,
-        preferences: PreferencesStore = PreferencesStore()
+        preferences: PreferencesStore = PreferencesStore(),
+        newsService: (any ResetNewsService)? = nil
     ) {
+        self.newsService = newsService
         self.service = service
         self.preferences = preferences
         appearance = preferences.appearance
@@ -94,7 +102,7 @@ public final class UsageController: ObservableObject {
         objectWillChange.send()
     }
 
-    public func refresh() async {
+    public func refresh(forceNews: Bool = false) async {
         guard !operationInProgress else { return }
         operationInProgress = true
         isRefreshing = true
@@ -102,7 +110,23 @@ public final class UsageController: ObservableObject {
             isRefreshing = false
             operationInProgress = false
         }
+        async let newsRead: Void = refreshNews(force: forceNews)
         await performRead()
+        await newsRead
+    }
+
+    private func refreshNews(force: Bool) async {
+        guard let newsService else { return }
+        if !force, let lastNewsAttempt, Date().timeIntervalSince(lastNewsAttempt) < 300 { return }
+        lastNewsAttempt = Date()
+        newsLoading = true
+        defer { newsLoading = false }
+        do {
+            resetNews = try await newsService.readNews()
+            newsFailed = false
+        } catch {
+            newsFailed = true
+        }
     }
 
     private func performRead() async {

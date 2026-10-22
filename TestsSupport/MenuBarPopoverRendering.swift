@@ -18,6 +18,8 @@ private actor MenuBarRenderService: UsageService {
 private final class SurfaceObservation: ObservableObject {
     weak var view: NSView?
     var openedURL: URL?
+    var activeMenu: NSMenu?
+    @objc func menuStarted(_ notification: Notification) { activeMenu = notification.object as? NSMenu }
 }
 
 // Independent measurement of the visible SwiftUI surface for screenshot checks.
@@ -49,7 +51,8 @@ struct MenuBarPopoverRendering: App {
     init() {
         let controller = UsageController(
             service: service,
-            preferences: PreferencesStore(defaults: UserDefaults(suiteName: suite)!)
+            preferences: PreferencesStore(defaults: UserDefaults(suiteName: suite)!),
+            newsService: RenderNewsService()
         )
         _controller = StateObject(wrappedValue: controller)
     }
@@ -139,13 +142,17 @@ struct MenuBarPopoverRendering: App {
         guard let view = surface.view, let window = view.window else {
             throw CheckFailure("Feedback surface is unavailable")
         }
-        // Click the bottom-left footer cell. SwiftUI's plain links are not
-        // exposed through NSView.accessibilityChildren on every macOS SDK.
+        // Open the top-right Settings menu; Feedback moved out of the footer.
+        // Observe the actual native menu and invoke its Feedback item by title.
         let point = view.convert(NSPoint(
-            x: view.bounds.width / 4,
-            y: view.isFlipped ? view.bounds.maxY - 26 : view.bounds.minY + 26
+            x: view.bounds.maxX - 31,
+            y: view.isFlipped ? view.bounds.minY + 34 : view.bounds.maxY - 34
         ), to: nil)
         surface.openedURL = nil
+        surface.activeMenu = nil
+        NotificationCenter.default.addObserver(surface, selector: #selector(SurfaceObservation.menuStarted(_:)),
+                                               name: NSMenu.didBeginTrackingNotification, object: nil)
+        defer { NotificationCenter.default.removeObserver(surface, name: NSMenu.didBeginTrackingNotification, object: nil) }
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
             guard let event = NSEvent.mouseEvent(
                 with: type, location: point, modifierFlags: [],
@@ -155,6 +162,13 @@ struct MenuBarPopoverRendering: App {
             ) else { throw CheckFailure("Feedback click event is unavailable") }
             NSApp.postEvent(event, atStart: false)
         }
+        try await settle()
+        guard let menu = surface.activeMenu,
+              let index = menu.items.firstIndex(where: { $0.title == title }) else {
+            throw CheckFailure("Feedback item missing from Settings menu")
+        }
+        menu.performActionForItem(at: index)
+        menu.cancelTracking()
         try await settle()
         guard surface.openedURL?.absoluteString == "https://github.com/hinson0/codex-usage/issues" else {
             throw CheckFailure("Feedback link did not open the project Issues page")
