@@ -96,7 +96,9 @@ and notarization can remove that warning properly.
 - Codex CLI, or a ChatGPT desktop app that includes the Codex executable, installed.
 - A ChatGPT account already signed in to Codex.
 
-No separate CLI installation is needed when ChatGPT includes Codex. The app
+No separate CLI installation is needed when ChatGPT includes Codex. Unless
+`CODEX_BIN` explicitly overrides the executable, ChatGPT’s bundled executable
+is preferred; standalone CLI installations are fallbacks. The app
 checks both the current `codex-cli/bin/codex` bundle location and the older
 `codex` location under `/Applications/ChatGPT.app/Contents/Resources`.
 
