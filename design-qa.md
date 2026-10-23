@@ -219,3 +219,5 @@ final result: passed
 - Native-menu tests failed before the styling implementation and before lazy-item handling, then passed for Chinese/English, default-style restoration, and unchanged neighboring items/action.
 - Opened the real SwiftUI settings Menu in a local AppKit preview using the production popover and styling bridge. Visually confirmed green “新版本” and unchanged ordinary menu labels. Preview uses simulated update availability and mock usage, not a live update check.
 - Screenshot: [Green update menu text](docs/images/codex-usage-green-update-menu.png).
+
+- Version-only verification release `1.5.6 (31)` provides a newer signed update for testing green “新版本” text from installed `1.5.5`. No runtime or layout change; actual discovery and native menu text color remain pending user acceptance.
