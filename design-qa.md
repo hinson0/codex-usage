@@ -15,7 +15,7 @@
 - Validation: focused credit-presentation tests and full suite pass (55 tests, plus 14 native-view render states, rounded-mask/opacity/resize checks, release guards, and runner checks). Release build with warnings-as-errors, packaging contracts, strict deep codesign verification, and startup smoke test also pass. Protocol code is unchanged; no live integration request or reset consumption was needed.
 - Remaining verification limit: the actual MenuBarExtra capture test could not capture its loading window (`could not create image from window`; capture unavailable; the underlying permission/session cause was not established). It stopped before interaction checks. This pass verifies the rendered production view; it does not claim actual menu clicks, installed-app appearance, or update delivery were verified.
 - Integration with latest `main`: retained both the upstream update-indicator test setup and the compact stale-news fixture setup. The new upstream pixel probe initially crashed because it sampled beyond the narrower panel; positioning the probe relative to the right edge preserves the green/neutral icon assertions at 380 points.
-- Version: bundle version is unchanged for this local design iteration. Before publishing the changed App, allocate a new version; the current 1.5.6 tag is already published.
+- Version: prepared 1.5.7 (32) for delivery of this App layout change; 1.5.6 is already published.
 
 final result: passed
 
