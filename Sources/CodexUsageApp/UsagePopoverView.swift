@@ -15,33 +15,22 @@ struct UsagePopoverView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
             header
             allowance
-            if presentation.availableResetsText != nil {
-                Divider()
+            if presentation.remainingPercent == nil, presentation.availableResetsText != nil {
                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                    HStack(alignment: .center, spacing: 12) {
-                        Label(LocalizationCatalog.format(
-                            (controller.snapshot?.availableResetCount ?? 0) == 1 ? .resetCreditCount : .resetCreditsCount,
-                            language: controller.language, controller.snapshot?.availableResetCount ?? 0),
-                              systemImage: "ticket")
-                        if let expiry = presentation.resetCreditExpiryText(at: context.date) {
-                            Divider().frame(height: 24)
-                            Label(LocalizationCatalog.format(.nextCreditExpiry, language: controller.language, expiry),
-                                  systemImage: "calendar")
-                        }
+                    VStack(alignment: .leading, spacing: 12) {
+                        creditCount.font(.system(size: 12.5))
+                        creditExpiry(at: context.date)
                     }
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Divider()
             newsSection
         }
-        .padding(20)
-        .frame(width: 400)
+        .padding(16)
+        .frame(width: 380)
         .background(controller.appearance == .dark ? Color(nsColor: .windowBackgroundColor) : .white)
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .background(PopoverAppearanceBridge(
@@ -115,11 +104,11 @@ struct UsagePopoverView: View {
     }
 
     private var allowance: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             if let remaining = presentation.remainingPercent {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("\(remaining)%")
-                        .font(.system(size: 42, weight: .bold))
+                        .font(.system(size: 38, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(.blue)
                     Text(presentation.text(.remainingAllowance))
@@ -148,10 +137,8 @@ struct UsagePopoverView: View {
                                 }
                             }
                         }
-                        metadataRow(symbol: "chart.bar.fill", title: presentation.text(.fiveHourRemaining)) {
-                            Text(presentation.fiveHourRemainingPercent.map { "\($0)%" }
-                                 ?? presentation.text(.unlimited))
-                        }
+                        compactStatus
+                        creditExpiry(at: context.date)
                     }
                 }
             } else {
@@ -172,8 +159,57 @@ struct UsagePopoverView: View {
         }
     }
 
+    private var compactStatus: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                fiveHourStatus
+                Spacer(minLength: 8)
+                creditCount
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                fiveHourStatus
+                creditCount
+            }
+        }
+        .font(.system(size: 12.5))
+    }
+
+    private var fiveHourStatus: some View {
+        HStack(spacing: 8) {
+            Label(presentation.text(.fiveHourRemaining), systemImage: "chart.bar.fill")
+                .foregroundStyle(.secondary)
+            Text(presentation.fiveHourRemainingPercent.map { "\($0)%" }
+                 ?? presentation.text(.unlimited))
+        }
+        .fixedSize()
+    }
+
+    @ViewBuilder
+    private var creditCount: some View {
+        if presentation.availableResetsText != nil {
+            Label(LocalizationCatalog.format(
+                (controller.snapshot?.availableResetCount ?? 0) == 1 ? .resetCreditCount : .resetCreditsCount,
+                language: controller.language, controller.snapshot?.availableResetCount ?? 0),
+                  systemImage: "ticket")
+                .foregroundStyle(.secondary)
+                .fixedSize()
+        }
+    }
+
+    @ViewBuilder
+    private func creditExpiry(at date: Date) -> some View {
+        if presentation.availableResetsText != nil,
+           let expiry = presentation.resetCreditExpiryText(at: date) {
+            Label(LocalizationCatalog.format(.nextCreditExpiry,
+                language: controller.language, expiry), systemImage: "calendar")
+                .font(.system(size: 12.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var newsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(presentation.text(.resetNews)).font(.system(size: 16, weight: .semibold))
                 Spacer()
@@ -222,7 +258,7 @@ struct UsagePopoverView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol).font(.system(size: 15)).frame(width: 18)
                 .foregroundStyle(.secondary)
-            Text(title).foregroundStyle(.secondary).frame(width: 112, alignment: .leading)
+            Text(title).foregroundStyle(.secondary).frame(width: 100, alignment: .leading)
             content().frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.system(size: 12.5))

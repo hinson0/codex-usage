@@ -30,15 +30,21 @@ struct PopoverRendering {
             let suite = "PopoverRendering.\(UUID().uuidString)"
             let defaults = UserDefaults(suiteName: suite)!
             defer { defaults.removePersistentDomain(forName: suite) }
+            let newsService = RenderNewsService()
             let controller = UsageController(
-                service: RenderUsageService(requiresLogin: creditState == -1, resetCount: creditState == 0 ? 0 : 3,
+                service: RenderUsageService(requiresLogin: creditState == -1, usedPercent: 0,
+                    resetCount: creditState == 0 ? 0 : 2,
                     creditExpiresAt: creditState == 2 ? Int64(Date().timeIntervalSince1970) + 7 * 86_400 : nil),
-                preferences: PreferencesStore(defaults: defaults), newsService: RenderNewsService()
+                preferences: PreferencesStore(defaults: defaults), newsService: newsService
             )
             controller.setAppearance(appearance)
             controller.setLanguage(language)
             await controller.refresh()
             let updater = UpdateCoordinator()
+            if creditState == 1 {
+                await newsService.setFailure(true)
+                await controller.refresh(forceNews: true)
+            }
             let host = NSHostingView(rootView: UsagePopoverView(
                 controller: controller, updater: updater
             ).padding(.vertical, CGFloat(inset)))
@@ -68,7 +74,7 @@ struct PopoverRendering {
                     // Check only the settings icon, not the blue allowance or news text.
                     let scale = Double(updateBitmap.pixelsWide) / size.width
                     var greenPixels = 0
-                    for x in Int(350 * scale)..<Int(385 * scale) {
+                    for x in Int((size.width - 50) * scale)..<Int((size.width - 10) * scale) {
                         for y in Int(15 * scale)..<Int(55 * scale) {
                             let color = updateBitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
                             if color.greenComponent > color.redComponent + 0.12
@@ -98,8 +104,9 @@ struct PopoverRendering {
             if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
                 failures.append("\(label): interior background must remain opaque")
             }
-            // A positive credit count adds one metadata row; long localized dates may wrap.
-            let heightBudget: CGFloat = creditState == 0 ? 510 : 560
+            // Compact status shares a row with count-only credits. Expiry and
+            // localized dates may wrap, but must not restore the old empty sections.
+            let heightBudget: CGFloat = creditState == 2 ? 440 : 410
             if size.height - CGFloat(inset * 2) > heightBudget {
                 failures.append("\(label): excessive empty space, height \(size.height) > \(heightBudget)")
             }
