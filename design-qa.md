@@ -209,3 +209,5 @@ final result: passed
 - Native Menu label rendering discarded the label's foreground color. The menu now keeps its original label geometry and interaction, with a noninteractive, accessibility-hidden icon overlay that draws the availability color over the popover background.
 - Pixel assertions verify green on discovery and neutral on clearing, in both Light and Dark. Screenshots were visually inspected; header geometry is preserved. These fixtures simulate update availability and do not constitute a live Sparkle discovery/install test.
 - [Light update available](docs/images/codex-usage-update-light.png) · [Dark update available](docs/images/codex-usage-update-dark.png).
+
+- Version-only verification release `1.5.4 (29)` provides a newer signed update for testing the green settings icon from installed `1.5.3`. No runtime or layout change; real automatic discovery and icon visibility remain pending user acceptance.
