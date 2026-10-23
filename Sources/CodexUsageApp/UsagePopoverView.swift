@@ -46,6 +46,9 @@ struct UsagePopoverView: View {
         .environment(\.colorScheme, controller.appearance == .dark ? .dark : .light)
         .background(PopoverAppearanceBridge(
             appearanceName: controller.appearance.nativeAppearancePolicy.popoverName))
+        .background(UpdateMenuAppearance(
+            title: presentation.checkForUpdatesTitle,
+            hasAvailableUpdate: updater.hasAvailableUpdate))
         .onAppear {
             updater.checkForUpdateInformation()
             Task { await controller.refresh() }

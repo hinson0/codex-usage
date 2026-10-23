@@ -211,3 +211,11 @@ final result: passed
 - [Light update available](docs/images/codex-usage-update-light.png) · [Dark update available](docs/images/codex-usage-update-dark.png).
 
 - Version-only verification release `1.5.4 (29)` provides a newer signed update for testing the green settings icon from installed `1.5.3`. No runtime or layout change; real automatic discovery and icon visibility remain pending user acceptance.
+
+## Green Update Menu Text — 1.5.5 (2026-10-23)
+
+- User confirmed the live 1.5.3 gear turned green after 1.5.4 was published; requested the “新版本” menu text also be green.
+- Use AppKit attributed menu titles for the update item, responding to menu tracking and lazy item creation/change. Unrelated items and actions are preserved; no-update state restores default styling.
+- Native-menu tests failed before the styling implementation and before lazy-item handling, then passed for Chinese/English, default-style restoration, and unchanged neighboring items/action.
+- Opened the real SwiftUI settings Menu in a local AppKit preview using the production popover and styling bridge. Visually confirmed green “新版本” and unchanged ordinary menu labels. Preview uses simulated update availability and mock usage, not a live update check.
+- Screenshot: [Green update menu text](docs/images/codex-usage-green-update-menu.png).

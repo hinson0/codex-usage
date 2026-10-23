@@ -15,6 +15,7 @@ fi
 run_supporting_tests() {
   if [[ "$#" -eq 0 ]]; then
     "$repo_root/Tests/PopoverRenderingTests.sh"
+    bash "$repo_root/Tests/UpdateMenuAppearanceTests.sh"
   fi
   "$repo_root/Tests/ReleaseScriptsTests.sh"
   "$repo_root/Tests/ReleaseArtifactsTests.sh"
