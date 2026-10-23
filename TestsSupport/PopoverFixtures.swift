@@ -36,9 +36,14 @@ struct RenderUsageService: UsageService {
     }
 }
 
-struct RenderNewsService: ResetNewsService {
+actor RenderNewsService: ResetNewsService {
+    private var fails = false
+
+    func setFailure(_ value: Bool) { fails = value }
+
     func readNews() async throws -> ResetNews {
-        try ResetNews.decode(Data("""
+        if fails { throw UsageServiceError.unavailable("Fixture news failure") }
+        return try ResetNews.decode(Data("""
         [{"tool":"codex","eventType":"额度重置","eventStatus":"completed","sortTime":"2026-10-20T06:33:48Z"},
          {"tool":"codex","eventType":"额度重置","eventStatus":"scheduled","sortTime":"2026-10-22T06:55:54Z",
           "forecast":{"at":"2026-10-22T18:00:00Z","deadline":true}}]
