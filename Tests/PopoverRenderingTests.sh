@@ -8,6 +8,7 @@ mkdir -p "$output"
 swiftc -parse-as-library -target "$(uname -m)-apple-macos13.0" -I "$bin_dir/Modules" \
   "$bin_dir/CodexUsageCore.build/"*.swift.o \
   Sources/CodexUsageApp/UsagePopoverView.swift \
+  Sources/CodexUsageApp/UpdateMenuAppearance.swift \
   TestsSupport/PopoverFixtures.swift TestsSupport/PopoverRendering.swift \
   -o "$output/PopoverRendering"
 "$output/PopoverRendering" "$output"
