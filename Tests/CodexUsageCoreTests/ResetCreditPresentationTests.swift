@@ -14,8 +14,9 @@ struct ResetCreditPresentationTests {
           {"status":"available","resetType":"codexRateLimits","expiresAt":1793188800}
         ]
         """, count: 2)
+        #expect(presentation.text(.lastCreditExpiry) == "临期")
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1792627200)) ==
-            "重置券 2 张 · 最后一张到期 10月29日 12:00")
+            "重置券 2 张 · 临期 10月29日 12:00")
     }
 
     @Test(arguments: ["null", "[]", "[{}]",
@@ -24,7 +25,7 @@ struct ResetCreditPresentationTests {
     func missingOrIncompleteExpiryIsExplicitlyUnknown(details: String) throws {
         let presentation = try makePresentation(details: details)
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1792627200)) ==
-            "重置券 3 张 · 最后一张到期 时间未知")
+            "重置券 3 张 · 临期 时间未知")
     }
 
     @Test
@@ -58,7 +59,7 @@ struct ResetCreditPresentationTests {
         let presentation = MenuPresentation(snapshot: original.snapshot, isRefreshing: false, error: nil,
             appearance: .light, language: .zhHans, timeZone: TimeZone(secondsFromGMT: 28800)!)
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1704067200)) ==
-            "重置券 1 张 · 最后一张到期 2026年10月28日 20:00")
+            "重置券 1 张 · 临期 2026年10月28日 20:00")
     }
 
     private func makePresentation(details: String, count: Int = 3,
