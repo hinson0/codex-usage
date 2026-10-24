@@ -1,12 +1,12 @@
 # Codex Usage Design QA
 
-## Update window visibility (2026-10-24, unreleased)
+## Update window visibility (1.5.10, 2026-10-24)
 
 - Reproduced the Settings update action in a real MenuBarExtra: the popover stayed visible when the update-window fixture opened. The regression failed with `hiddenBeforeUpdate=false` and both windows visible.
 - The update action now uses SwiftUI's dismiss action before calling Sparkle. It closes the popover through its scene, preserving the status button's ability to reopen it. Layout and styling are unchanged.
 - `bash Tests/UpdateWindowPresentationTests.sh` passes for Chinese and English, with both Check for Updates and New Version labels. It verifies the popover is already hidden when the update action runs, the update-window fixture is visible, and one status-button click reopens the popover. It uses an isolated preferences suite and never starts Sparkle or accesses an account.
 - All 57 core tests, popover rendering and native-menu checks, release build with warnings as errors, packaging, strict codesign verification and startup smoke test pass. This does not verify a real Sparkle installation or macOS versions other than this test host.
-- Bundle version remains unchanged until the next release is prepared; published 1.5.9 assets are unchanged.
+- Version: prepared 1.5.10 (35) for this update-window visibility fix; published 1.5.9 assets are unchanged.
 
 ## Paired reset summary and latest website record — 1.5.8 (2026-10-24)
 
