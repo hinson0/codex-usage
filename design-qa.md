@@ -261,3 +261,9 @@ final result: passed
 - Screenshot: [Green update menu text](docs/images/codex-usage-green-update-menu.png).
 
 - Version-only verification release `1.5.6 (31)` provides a newer signed update for testing green “新版本” text from installed `1.5.5`. No runtime or layout change; actual discovery and native menu text color remain pending user acceptance.
+
+## Credit expiry copy (2026-10-24)
+
+- Chinese credit expiry labels now read `临期`, including the combined credit summary. English copy and expiry-date selection are unchanged.
+- Version: 1.5.9 (34). This is a text-only change; layout, fonts, colors and spacing are unchanged.
+- Validation: focused regression observed RED, then passed; all 57 tests, native popover rendering and menu checks, release build, packaging, strict codesign verification and startup smoke test passed. Inspected the light Chinese two-credit render: `临期` and its date are readable without clipping. Fixture rendering does not verify installed-app update delivery.
