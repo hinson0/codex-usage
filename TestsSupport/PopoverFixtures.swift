@@ -7,8 +7,9 @@ import SwiftUI
 final class UpdateCoordinator: ObservableObject {
     let canCheckForUpdates = true
     @Published var hasAvailableUpdate = false
+    var onCheckForUpdates: (() -> Void)?
     func checkForUpdateInformation() {}
-    func checkForUpdates() {}
+    func checkForUpdates() { onCheckForUpdates?() }
 }
 
 struct RenderUsageService: UsageService {
