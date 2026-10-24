@@ -5,12 +5,16 @@
 - Build a native macOS 13+ menu-bar app with no Dock icon or main window.
 - Display only the `codex` allowance bucket. Show its five-hour and longer-window percentages when both exist; when the five-hour window is absent, show the longer-window percentage and mark five-hour usage as unlimited. Keep auxiliary buckets such as `base_model_inference` and `gpt-reserve` out of the UI.
 - Treat reset credits as read-only. Show the count only when `availableCount > 0`; never redeem a reset or save reset-attempt history.
+- Always show the current allowance's recovery date, exact time, and live countdown together (for example, “剩余 6 天 22 小时”). Never omit any of them to make a layout more compact. If the recovery timestamp is unavailable, explicitly show that it is unknown rather than inventing a date or countdown.
+- When `availableCount > 0`, show both the reset-credit count and the expiration time of the last available Codex reset credit: use the latest expiration among available Codex credits, not the earliest. If expiration data is unavailable or insufficient to establish the last credit's expiration, explicitly show it as unknown; never invent an expiration time.
+- Group the allowance recovery date/time with its countdown, and group the reset-credit count with its expiration time. Keep both groups within the same reset-summary area.
+- These information-retention rules apply to every design, redesign, and implementation. Before presenting any design image or completing a UI change, verify every required item above. Mockups must include them too; “add it during implementation” is not a substitute.
 - Automated verification is read-only against the live account; it never consumes a reset.
 - Appearance choices are Light and Dark. Apply appearance to the popover window only, leaving the menu-bar title under macOS contrast control.
 - Language choices are English and Simplified Chinese. Fresh installs and migrated legacy `system` values default to English.
 - Sparkle checks for updates automatically, but installation remains user-confirmed. Keep the interactive update action localized and independent from Codex usage state.
 - Only commit the Sparkle public key. Keep the private update-signing key in the `hinson0.codex-usage` login Keychain account and GitHub Actions secret `SPARKLE_PRIVATE_KEY`.
-- Use `docs/images/codex-usage-dual-window.png` as the visual target and keep `design-qa.md` current after visual changes.
+- For UI design and implementation, use the selected `docs/images/qa/codex-usage-reset-summary-selected.png` as the visual target and keep `design-qa.md` current after visual changes.
 
 ## Workflow
 

@@ -35,9 +35,9 @@ The status item starts with the app’s monochrome icon, followed by compact tex
 
 ### Reset news
 
-The popover groups allowance, reset credits, and public reset news. Refresh updates both usage and announcements. The top-right Settings menu contains appearance, language, updates, feedback, and Quit.
+The popover pairs the allowance recovery date and live countdown with the reset-credit count and last credit's expiration in one reset summary. The expiration is the latest among all available Codex credits; missing or incomplete dates show “Time unknown.” Refresh updates both usage and announcements. The top-right Settings menu contains appearance, language, updates, feedback, and Quit.
 
-The latest completed global reset and forecast come from [AI Sentry](https://divin.cc/), not personal account history. Forecasts remain provisional; elapsed estimates show “Unconfirmed” until a completion record arrives. Dates use the local time zone. News refreshes every five minutes or on manual refresh; failures retain previous results with a stale-data notice. No Codex credentials are sent to this website.
+Reset news shows only the latest signal from [AI Sentry](https://divin.cc/), falling back to its latest Codex timeline record when no current signal exists. It preserves the source summary, occasion, status, and update time instead of splitting past resets and forecasts into separate rows. Source text remains in its original language and retains explicit time zones; account dates and announcement update times use the local time zone. Elapsed estimates stay “Unconfirmed” until the source reports completion. News refreshes every five minutes or on manual refresh; failures retain previous results with a stale-data notice. These are public announcements, not personal account history. No Codex credentials are sent to this website.
 
 ### Target experience
 

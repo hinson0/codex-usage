@@ -107,13 +107,20 @@ public struct MenuPresentation: Sendable {
 
     public func resetCreditExpiryText(at now: Date) -> String? {
         guard let snapshot, snapshot.availableResetCount > 0 else { return nil }
-        let expiry = snapshot.resetCredits
+        let credits = snapshot.resetCredits
             .filter { $0.status == "available" && $0.resetType == "codexRateLimits" }
-            .compactMap(\.expiresAt)
-            .filter { TimeInterval($0) > now.timeIntervalSince1970 }
-            .min()
-        guard let expiry else { return nil }
-        let date = Date(timeIntervalSince1970: TimeInterval(expiry))
+        guard credits.count == snapshot.availableResetCount,
+              credits.allSatisfy({ $0.expiresAt.map { TimeInterval($0) > now.timeIntervalSince1970 } == true }),
+              let expiry = credits.compactMap(\.expiresAt).max() else { return text(.timeUnknown) }
+        return summaryDateText(Date(timeIntervalSince1970: TimeInterval(expiry)), relativeTo: now)
+    }
+
+    public func recoveryDateText(at now: Date) -> String {
+        guard let timestamp = nextResetTimestamp else { return text(.timeUnknown) }
+        return summaryDateText(Date(timeIntervalSince1970: TimeInterval(timestamp)), relativeTo: now)
+    }
+
+    private func summaryDateText(_ date: Date, relativeTo now: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: language.resolved() == .zhHans ? "zh_Hans_CN" : "en_US")
         formatter.timeZone = timeZone

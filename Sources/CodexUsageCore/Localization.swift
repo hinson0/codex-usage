@@ -17,6 +17,9 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case newsExpectedAt
     case newsAwaitingConfirmation
     case newsSourceNote
+    case newsCompleted
+    case newsRollingOut
+    case newsUpdated
     case codexRemaining
     case fiveHourRemaining
     case unlimited
@@ -33,6 +36,11 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case resetCreditCount
     case resetCreditsCount
     case nextCreditExpiry
+    case timeUnknown
+    case availableResetCredits
+    case resetCountValue
+    case lastCreditExpiry
+    case accountLocalTime
     case appearance
     case light
     case dark
@@ -57,20 +65,23 @@ public enum LocalizationCatalog {
         .zhHans: [
             .settings: "设置",
             .remainingAllowance: "剩余额度",
-            .allowanceRecovery: "额度恢复",
+            .allowanceRecovery: "额度自动恢复",
             .resetNews: "重置动态",
             .lastGlobalReset: "最近全局重置",
             .latestForecast: "最新预告",
             .newsLoading: "正在读取重置动态…",
             .newsUnavailable: "重置动态暂不可用",
             .newsStale: "更新失败 · 显示上次结果",
-            .newsEmpty: "暂无已完成记录",
+            .newsEmpty: "暂无重置动态",
             .newsNoForecast: "暂无新预告",
             .newsTimeUnknown: "时间待公布",
             .newsExpectedBefore: "预计 %@前",
             .newsExpectedAt: "预计 %@",
             .newsAwaitingConfirmation: "待确认",
-            .newsSourceNote: "本地时间 · 公开公告，非账户记录",
+            .newsSourceNote: "公开公告，非账户记录",
+            .newsCompleted: "已完成",
+            .newsRollingOut: "进行中",
+            .newsUpdated: "公开公告 · 更新于 %@",
 
             .codexRemaining: "Codex 剩余",
             .fiveHourRemaining: "5 小时剩余",
@@ -87,7 +98,12 @@ public enum LocalizationCatalog {
             .availableResets: "(%d)",
             .resetCreditCount: "重置券 %d 张",
             .resetCreditsCount: "重置券 %d 张",
-            .nextCreditExpiry: "最近到期 %@",
+            .nextCreditExpiry: "最后一张到期 %@",
+            .timeUnknown: "时间未知",
+            .availableResetCredits: "可用重置券",
+            .resetCountValue: "%d 张",
+            .lastCreditExpiry: "最后一张到期",
+            .accountLocalTime: "账户时间为本地时间",
             .appearance: "外观",
             .light: "浅色",
             .dark: "深色",
@@ -116,13 +132,16 @@ public enum LocalizationCatalog {
             .newsLoading: "Loading reset news…",
             .newsUnavailable: "Reset news unavailable",
             .newsStale: "Update failed · showing previous results",
-            .newsEmpty: "No completed reset recorded",
+            .newsEmpty: "No reset news",
             .newsNoForecast: "No new forecast",
             .newsTimeUnknown: "Time not announced",
             .newsExpectedBefore: "Expected before %@",
             .newsExpectedAt: "Expected %@",
             .newsAwaitingConfirmation: "Unconfirmed",
-            .newsSourceNote: "Local time · public announcements, not account history",
+            .newsSourceNote: "Public announcements, not account history",
+            .newsCompleted: "Completed",
+            .newsRollingOut: "Rolling out",
+            .newsUpdated: "Public announcement · Updated %@",
 
             .codexRemaining: "Codex remaining",
             .fiveHourRemaining: "5-hour remaining",
@@ -139,7 +158,12 @@ public enum LocalizationCatalog {
             .availableResets: "(%d)",
             .resetCreditCount: "%d reset credit",
             .resetCreditsCount: "%d reset credits",
-            .nextCreditExpiry: "Expires %@",
+            .nextCreditExpiry: "Last credit expires %@",
+            .timeUnknown: "Time unknown",
+            .availableResetCredits: "Reset credits",
+            .resetCountValue: "%d",
+            .lastCreditExpiry: "Last credit expires",
+            .accountLocalTime: "Account dates use local time",
             .appearance: "Appearance",
             .light: "Light",
             .dark: "Dark",

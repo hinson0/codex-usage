@@ -11,6 +11,7 @@ swiftc -O -parse-as-library -swift-version 6 \
   -target "$(uname -m)-apple-macos13.0" \
   -I "$bin_dir/Modules" "$bin_dir/CodexUsageCore.build/"*.swift.o \
   Sources/CodexUsageApp/UsagePopoverView.swift \
+  Sources/CodexUsageApp/UpdateMenuAppearance.swift \
   Sources/CodexUsageApp/ContentSizedPopover.swift \
   Sources/CodexUsageApp/StatusItemContent.swift \
   "$bin_dir/CodexUsage.build/DerivedSources/resource_bundle_accessor.swift" \

@@ -1,6 +1,7 @@
 import AppKit
 import CodexUsageCore
 import SwiftUI
+import Vision
 
 @main
 struct PopoverRendering {
@@ -24,6 +25,10 @@ struct PopoverRendering {
             (.dark, .english, 0, 2),
             (.light, .zhHans, 10, 2),
             (.dark, .english, 10, 2),
+            (.light, .zhHans, 0, 3),
+            (.dark, .english, 0, 3),
+            (.light, .zhHans, 0, 4),
+            (.dark, .english, 0, 4),
             (.light, .zhHans, 0, -1),
             (.dark, .english, 0, -1),
         ] {
@@ -32,9 +37,12 @@ struct PopoverRendering {
             defer { defaults.removePersistentDomain(forName: suite) }
             let newsService = RenderNewsService()
             let controller = UsageController(
-                service: RenderUsageService(requiresLogin: creditState == -1, usedPercent: 0,
+                service: RenderUsageService(requiresLogin: creditState == -1, usedPercent: 4,
                     resetCount: creditState == 0 ? 0 : 2,
-                    creditExpiresAt: creditState == 2 ? Int64(Date().timeIntervalSince1970) + 7 * 86_400 : nil),
+                    creditExpiresAt: creditState == 2 || creditState == 4
+                        ? Int64(Date().timeIntervalSince1970) + (creditState == 4 ? 400 : 5) * 86_400 : nil,
+                    resetsAt: creditState == 3 ? nil : Int64(Date().timeIntervalSince1970)
+                        + (creditState == 4 ? 400 : 6) * 86_400 + 22 * 3_600 + 300),
                 preferences: PreferencesStore(defaults: defaults), newsService: newsService
             )
             controller.setAppearance(appearance)
@@ -61,6 +69,39 @@ struct PopoverRendering {
             let label = "\(appearance.rawValue)-\(language.rawValue)-inset\(inset)-credits\(creditState)"
             try bitmap.representation(using: .png, properties: [:])!
                 .write(to: URL(fileURLWithPath: "\(output)/\(label).png"))
+            if language == .english && creditState == 2 && inset == 0 {
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["en-US"]
+                try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request])
+                let lines = request.results ?? []
+                let recognized = lines.compactMap { $0.topCandidates(1).first?.string }
+                print("Summary OCR: \(recognized)")
+                for required in ["Allowance resets", "Reset credits", "Time left:", "Last credit expires"] {
+                    if !recognized.contains(where: { $0.contains(required) }) {
+                        failures.append("\(label): missing required visible information: \(required)")
+                    }
+                }
+                if !recognized.contains("2") {
+                    failures.append("\(label): positive reset-credit count must remain visible")
+                }
+                for removedRow in ["Last global reset", "Latest forecast"] {
+                    if recognized.contains(where: { $0.contains(removedRow) }) {
+                        failures.append("\(label): news must show one record instead of separate history/forecast rows")
+                    }
+                }
+                let expiry = lines.first { $0.topCandidates(1).first?.string.contains("Last credit expires") == true }
+                if expiry.map({ $0.boundingBox.minX > 0.45 }) != true {
+                    failures.append("\(label): expiry must stay in the right-hand reset-credit group")
+                }
+                let datedLines = lines.filter {
+                    $0.topCandidates(1).first?.string.range(of: #"\d{1,2}:\d{2}"#, options: .regularExpression) != nil
+                }
+                if !datedLines.contains(where: { $0.boundingBox.minX < 0.4 })
+                    || !datedLines.contains(where: { $0.boundingBox.minX > 0.45 }) {
+                    failures.append("\(label): both recovery and last-credit dates must be visible in their own columns")
+                }
+            }
             if creditState == 0 && inset == 0 {
                 for available in [true, false] {
                     updater.hasAvailableUpdate = available
@@ -94,19 +135,22 @@ struct PopoverRendering {
             // cacheDisplay can include the native mask after SwiftUI layout.
             // Check opacity inside the rounded surface; its exterior corners
             // are checked for transparency in the complete-frame render below.
-            for (x, y) in [(16, inset + 16), (bitmap.pixelsWide - 17, inset + 16),
-                           (16, bitmap.pixelsHigh - inset - 17),
-                           (bitmap.pixelsWide - 17, bitmap.pixelsHigh - inset - 17)] {
+            let bitmapScale = CGFloat(bitmap.pixelsWide) / size.width
+            let insetPixels = Int(CGFloat(inset) * bitmapScale)
+            let innerPixels = Int(16 * bitmapScale)
+            for (x, y) in [(innerPixels, insetPixels + innerPixels),
+                           (bitmap.pixelsWide - innerPixels - 1, insetPixels + innerPixels),
+                           (innerPixels, bitmap.pixelsHigh - insetPixels - innerPixels - 1),
+                           (bitmap.pixelsWide - innerPixels - 1, bitmap.pixelsHigh - insetPixels - innerPixels - 1)] {
                 if bitmap.colorAt(x: x, y: y)!.alphaComponent < 0.99 {
                     failures.append("\(label): visible content near a rounded corner must remain opaque")
                 }
             }
-            if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: inset + 8)!.alphaComponent < 0.99 {
+            if bitmap.colorAt(x: bitmap.pixelsWide / 2, y: insetPixels + Int(8 * bitmapScale))!.alphaComponent < 0.99 {
                 failures.append("\(label): interior background must remain opaque")
             }
-            // Compact status shares a row with count-only credits. Expiry and
-            // localized dates may wrap, but must not restore the old empty sections.
-            let heightBudget: CGFloat = creditState == 2 ? 440 : 410
+            // The selected summary reserves space for both dates and the countdown.
+            let heightBudget: CGFloat = creditState > 0 ? 560 : 510
             if size.height - CGFloat(inset * 2) > heightBudget {
                 failures.append("\(label): excessive empty space, height \(size.height) > \(heightBudget)")
             }

@@ -15,16 +15,15 @@ struct UsagePopoverView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             header
             allowance
-            if presentation.remainingPercent == nil, presentation.availableResetsText != nil {
+            if controller.snapshot != nil {
                 TimelineView(.periodic(from: .now, by: 60)) { context in
-                    VStack(alignment: .leading, spacing: 12) {
-                        creditCount.font(.system(size: 12.5))
-                        creditExpiry(at: context.date)
-                    }
+                    resetSummary(at: context.date)
                 }
+                Text(presentation.text(.accountLocalTime))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Divider()
             newsSection
@@ -49,7 +48,7 @@ struct UsagePopoverView: View {
 
     private var header: some View {
         HStack {
-            Text("Codex").font(.system(size: 23, weight: .bold))
+            Text("Codex").font(.system(size: 25, weight: .bold))
             Spacer()
             Button {
                 Task { await controller.refresh(forceNews: true) }
@@ -104,15 +103,15 @@ struct UsagePopoverView: View {
     }
 
     private var allowance: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             if let remaining = presentation.remainingPercent {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("\(remaining)%")
-                        .font(.system(size: 38, weight: .bold))
+                        .font(.system(size: 44, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(.blue)
                     Text(presentation.text(.remainingAllowance))
-                        .font(.system(size: 14)).foregroundStyle(.secondary)
+                        .font(.system(size: 15)).foregroundStyle(.secondary)
                 }
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
@@ -125,22 +124,7 @@ struct UsagePopoverView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(presentation.text(.remainingAllowance))
                 .accessibilityValue("\(remaining)%")
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let reset = presentation.nextResetDateText {
-                            metadataRow(symbol: "clock", title: presentation.text(.allowanceRecovery)) {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(reset)
-                                    if let countdown = presentation.resetCountdownText(at: context.date) {
-                                        Text(countdown).font(.system(size: 11)).foregroundStyle(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                        compactStatus
-                        creditExpiry(at: context.date)
-                    }
-                }
+                fiveHourStatus
             } else {
                 HStack {
                     if let error = presentation.errorText {
@@ -159,110 +143,95 @@ struct UsagePopoverView: View {
         }
     }
 
-    private var compactStatus: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                fiveHourStatus
-                Spacer(minLength: 8)
-                creditCount
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                fiveHourStatus
-                creditCount
-            }
-        }
-        .font(.system(size: 12.5))
-    }
-
     private var fiveHourStatus: some View {
         HStack(spacing: 8) {
             Label(presentation.text(.fiveHourRemaining), systemImage: "chart.bar.fill")
                 .foregroundStyle(.secondary)
+            Spacer()
             Text(presentation.fiveHourRemainingPercent.map { "\($0)%" }
                  ?? presentation.text(.unlimited))
         }
-        .fixedSize()
+        .font(.system(size: 14))
     }
 
-    @ViewBuilder
-    private var creditCount: some View {
-        if presentation.availableResetsText != nil {
-            Label(LocalizationCatalog.format(
-                (controller.snapshot?.availableResetCount ?? 0) == 1 ? .resetCreditCount : .resetCreditsCount,
-                language: controller.language, controller.snapshot?.availableResetCount ?? 0),
-                  systemImage: "ticket")
-                .foregroundStyle(.secondary)
-                .fixedSize()
+    private func resetSummary(at date: Date) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(presentation.text(.allowanceRecovery), systemImage: "clock")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                Text(presentation.recoveryDateText(at: date))
+                    .font(.system(size: 16, weight: .semibold))
+                    .monospacedDigit()
+                Text(presentation.resetCountdownText(at: date) ?? presentation.text(.timeUnknown))
+                    .font(.system(size: 14)).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if presentation.availableResetsText != nil {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(presentation.text(.availableResetCredits), systemImage: "ticket")
+                        .font(.system(size: 13)).foregroundStyle(.secondary)
+                    Text(LocalizationCatalog.format(.resetCountValue, language: controller.language,
+                        controller.snapshot?.availableResetCount ?? 0))
+                        .font(.system(size: 24, weight: .semibold)).monospacedDigit()
+                    Text(presentation.text(.lastCreditExpiry))
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(presentation.resetCreditExpiryText(at: date) ?? presentation.text(.timeUnknown))
+                        .font(.system(size: 16, weight: .semibold)).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-    }
-
-    @ViewBuilder
-    private func creditExpiry(at date: Date) -> some View {
-        if presentation.availableResetsText != nil,
-           let expiry = presentation.resetCreditExpiryText(at: date) {
-            Label(LocalizationCatalog.format(.nextCreditExpiry,
-                language: controller.language, expiry), systemImage: "calendar")
-                .font(.system(size: 12.5))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(14)
+        .background(Color.primary.opacity(controller.appearance == .dark ? 0.06 : 0.035),
+                    in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var newsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(presentation.text(.resetNews)).font(.system(size: 16, weight: .semibold))
-                Spacer()
-                Link("divin.cc ↗", destination: ResetNews.sourceURL)
-                    .font(.system(size: 13))
-            }
-            if let news = controller.resetNews {
-                metadataRow(symbol: "globe", title: presentation.text(.lastGlobalReset)) {
-                    Text(news.completedAt.map {
-                        LocalizationCatalog.dateTime($0, language: controller.language)
-                    } ?? presentation.text(.newsEmpty))
-                }
-                metadataRow(symbol: "clock", title: presentation.text(.latestForecast)) {
-                    if let forecast = news.forecast {
-                        TimelineView(.periodic(from: .now, by: 60)) { context in
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(news.forecastText(language: controller.language))
-                                    .foregroundStyle(.orange)
-                                Text(forecast.statusText(language: controller.language, now: context.date))
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundStyle(.orange)
-                                    .padding(.horizontal, 7).padding(.vertical, 3)
-                                    .background(Color.orange.opacity(0.10), in: Capsule())
-                            }
-                        }
-                    } else {
-                        Text(presentation.text(.newsNoForecast)).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Text(presentation.text(.resetNews)).font(.system(size: 18, weight: .semibold))
+                if let latest = controller.resetNews?.latest {
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        Text(latest.statusText(language: controller.language, now: context.date))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(latest.stage == .completed ? Color.secondary : .orange)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background((latest.stage == .completed ? Color.secondary : .orange).opacity(0.10),
+                                        in: Capsule())
                     }
                 }
+                Spacer(minLength: 0)
+                Link("divin.cc ↗", destination: ResetNews.sourceURL)
+                    .font(.system(size: 15))
+            }
+            if let latest = controller.resetNews?.latest {
+                Text(latest.summary.replacingOccurrences(of: "，预计", with: "，\n预计"))
+                    .font(.system(size: 13))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                if let occasion = latest.occasion, !occasion.isEmpty {
+                    Text(occasion).font(.system(size: 14)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Divider()
+                Text(LocalizationCatalog.format(.newsUpdated, language: controller.language,
+                    latest.updatedAt.map {
+                        LocalizationCatalog.dateTime($0, language: controller.language)
+                    } ?? presentation.text(.timeUnknown)))
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text(presentation.text(controller.newsFailed ? .newsUnavailable : .newsLoading))
+                Text(presentation.text(controller.resetNews != nil ? .newsEmpty :
+                    (controller.newsFailed ? .newsUnavailable : .newsLoading)))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             }
             if controller.newsFailed && controller.resetNews != nil {
                 Text(presentation.text(.newsStale)).font(.system(size: 11)).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Divider()
-            Text(presentation.text(.newsSourceNote))
-                .font(.system(size: 10.5)).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private func metadataRow<Content: View>(symbol: String, title: String,
-                                            @ViewBuilder content: () -> Content) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 15)).frame(width: 18)
-                .foregroundStyle(.secondary)
-            Text(title).foregroundStyle(.secondary).frame(width: 100, alignment: .leading)
-            content().frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .font(.system(size: 12.5))
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func selectionButton<Value>(_ option: MenuOption<Value>, action: @escaping () -> Void) -> some View
