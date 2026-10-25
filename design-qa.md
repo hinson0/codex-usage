@@ -1,11 +1,19 @@
 # Codex Usage Design QA
 
-## Soonest reset-credit expiration — 1.5.10 (2026-10-25)
+## Soonest reset-credit expiration — 1.5.11 (2026-10-25)
 
 - User correction supersedes the latest-expiration requirement recorded below: show the earliest expiry among all available Codex credits. The screenshot regression uses October 30 03:08 and November 7 07:37 in GMT+8; October 30 must be shown.
 - Chinese retains “临期”; English now says “Next credit expires”. Recovery date, exact time, live countdown, positive credit count and credit expiration remain grouped in the existing summary. Incomplete dates still show unknown.
 - Validation: the screenshot regression failed with November 7 before the fix and passed with October 30 after it. Focused tests, full suite (57 tests; live integrations skipped), 18 native rendering states with English OCR, update-menu checks, release guards, release build with warnings-as-errors, packaging, strict deep signature verification and startup smoke test all passed. Standards and Spec reviews found no actionable issues.
 - Visual evidence: `docs/images/qa/codex-usage-soonest-expiry-light-zhHans.png` and `docs/images/qa/codex-usage-soonest-expiry-dark-english.png` were inspected; both retain recovery date/time/countdown and the positive count with next expiry. These use synthetic relative dates, not the live account. Historical images below document the previous behavior. No installed-app interaction or live-account validation was performed.
+
+## Update window visibility (1.5.10, 2026-10-24)
+
+- Reproduced the Settings update action in a real MenuBarExtra: the popover stayed visible when the update-window fixture opened. The regression failed with `hiddenBeforeUpdate=false` and both windows visible.
+- The update action now uses SwiftUI's dismiss action before calling Sparkle. It closes the popover through its scene, preserving the status button's ability to reopen it. Layout and styling are unchanged.
+- `bash Tests/UpdateWindowPresentationTests.sh` passes for Chinese and English, with both Check for Updates and New Version labels. It verifies the popover is already hidden when the update action runs, the update-window fixture is visible, and one status-button click reopens the popover. It uses an isolated preferences suite and never starts Sparkle or accesses an account.
+- All 57 core tests, popover rendering and native-menu checks, release build with warnings as errors, packaging, strict codesign verification and startup smoke test pass. This does not verify a real Sparkle installation or macOS versions other than this test host.
+- Version: prepared 1.5.10 (35) for this update-window visibility fix; published 1.5.9 assets are unchanged.
 
 ## Paired reset summary and latest website record — 1.5.8 (2026-10-24)
 

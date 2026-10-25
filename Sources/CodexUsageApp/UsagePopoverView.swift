@@ -6,6 +6,7 @@ struct UsagePopoverView: View {
     @ObservedObject var controller: UsageController
     @ObservedObject var updater: UpdateCoordinator
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
 
     private var presentation: MenuPresentation {
         MenuPresentation(snapshot: controller.snapshot, isRefreshing: controller.isRefreshing,
@@ -72,7 +73,11 @@ struct UsagePopoverView: View {
                     }
                 }
                 Divider()
-                Button(presentation.checkForUpdatesTitle) { updater.checkForUpdates() }
+                Button(presentation.checkForUpdatesTitle) {
+                    // The menu-bar panel can cover Sparkle's ordinary windows.
+                    dismiss()
+                    updater.checkForUpdates()
+                }
                     .disabled(!presentation.isUpdateEnabled)
                 Button(presentation.text(.feedback)) { openURL(presentation.feedbackURL) }
                 Divider()
