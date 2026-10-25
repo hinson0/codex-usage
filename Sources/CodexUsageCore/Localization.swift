@@ -39,7 +39,7 @@ public enum LocalizationKey: String, CaseIterable, Sendable {
     case timeUnknown
     case availableResetCredits
     case resetCountValue
-    case lastCreditExpiry
+    case soonestCreditExpiry
     case accountLocalTime
     case appearance
     case light
@@ -102,7 +102,7 @@ public enum LocalizationCatalog {
             .timeUnknown: "时间未知",
             .availableResetCredits: "可用重置券",
             .resetCountValue: "%d 张",
-            .lastCreditExpiry: "临期",
+            .soonestCreditExpiry: "临期",
             .accountLocalTime: "账户时间为本地时间",
             .appearance: "外观",
             .light: "浅色",
@@ -158,11 +158,11 @@ public enum LocalizationCatalog {
             .availableResets: "(%d)",
             .resetCreditCount: "%d reset credit",
             .resetCreditsCount: "%d reset credits",
-            .nextCreditExpiry: "Last credit expires %@",
+            .nextCreditExpiry: "Next credit expires %@",
             .timeUnknown: "Time unknown",
             .availableResetCredits: "Reset credits",
             .resetCountValue: "%d",
-            .lastCreditExpiry: "Last credit expires",
+            .soonestCreditExpiry: "Next credit expires",
             .accountLocalTime: "Account dates use local time",
             .appearance: "Appearance",
             .light: "Light",
