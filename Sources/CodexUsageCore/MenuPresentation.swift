@@ -111,7 +111,7 @@ public struct MenuPresentation: Sendable {
             .filter { $0.status == "available" && $0.resetType == "codexRateLimits" }
         guard credits.count == snapshot.availableResetCount,
               credits.allSatisfy({ $0.expiresAt.map { TimeInterval($0) > now.timeIntervalSince1970 } == true }),
-              let expiry = credits.compactMap(\.expiresAt).max() else { return text(.timeUnknown) }
+              let expiry = credits.compactMap(\.expiresAt).min() else { return text(.timeUnknown) }
         return summaryDateText(Date(timeIntervalSince1970: TimeInterval(expiry)), relativeTo: now)
     }
 

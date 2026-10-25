@@ -5,18 +5,20 @@ import Testing
 @Suite
 struct ResetCreditPresentationTests {
     @Test
-    func showsLastAvailableCodexCreditExpiry() throws {
-        let presentation = try makePresentation(details: """
+    func showsSoonestAvailableCodexCreditExpiry() throws {
+        let original = try makePresentation(details: """
         [
-          {"status":"available","resetType":"codexRateLimits","expiresAt":1793275200},
+          {"status":"available","resetType":"codexRateLimits","expiresAt":1794008220},
           {"status":"redeemed","resetType":"codexRateLimits","expiresAt":1793000000},
           {"status":"available","resetType":"unknown","expiresAt":1793000000},
-          {"status":"available","resetType":"codexRateLimits","expiresAt":1793188800}
+          {"status":"available","resetType":"codexRateLimits","expiresAt":1793300880}
         ]
         """, count: 2)
-        #expect(presentation.text(.lastCreditExpiry) == "临期")
+        let presentation = MenuPresentation(snapshot: original.snapshot, isRefreshing: false, error: nil,
+            appearance: .light, language: .zhHans, timeZone: TimeZone(secondsFromGMT: 28800)!)
+        #expect(presentation.text(.soonestCreditExpiry) == "临期")
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1792627200)) ==
-            "重置券 2 张 · 临期 10月29日 12:00")
+            "重置券 2 张 · 临期 10月30日 03:08")
     }
 
     @Test(arguments: ["null", "[]", "[{}]",
@@ -29,7 +31,7 @@ struct ResetCreditPresentationTests {
     }
 
     @Test
-    func oneUndatedCreditMakesLastExpiryUnknownEvenWhenAnotherDateIsKnown() throws {
+    func oneUndatedCreditMakesSoonestExpiryUnknownEvenWhenAnotherDateIsKnown() throws {
         let presentation = try makePresentation(details: """
         [{"status":"available","resetType":"codexRateLimits","expiresAt":1793275200},
          {"status":"available","resetType":"codexRateLimits","expiresAt":null}]
@@ -42,14 +44,14 @@ struct ResetCreditPresentationTests {
         let details = "[{\"status\":\"available\",\"resetType\":\"codexRateLimits\",\"expiresAt\":1793188800}]"
         let presentation = try makePresentation(details: details, count: 1, language: .english)
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1792627200)) ==
-            "1 reset credit · Last credit expires Oct 28, 12:00")
+            "1 reset credit · Next credit expires Oct 28, 12:00")
         #expect(presentation.resetCreditsText(at: Date(timeIntervalSince1970: 1793188800)) ==
-            "1 reset credit · Last credit expires Time unknown")
+            "1 reset credit · Next credit expires Time unknown")
         for count in [0, -1] {
             #expect(try makePresentation(details: details, count: count).resetCreditsText(at: .distantPast) == nil)
         }
         #expect(try makePresentation(details: "null", language: .english).resetCreditsText(at: .now) ==
-            "3 reset credits · Last credit expires Time unknown")
+            "3 reset credits · Next credit expires Time unknown")
     }
 
     @Test

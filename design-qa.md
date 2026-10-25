@@ -1,5 +1,12 @@
 # Codex Usage Design QA
 
+## Soonest reset-credit expiration — 1.5.11 (2026-10-25)
+
+- User correction supersedes the latest-expiration requirement recorded below: show the earliest expiry among all available Codex credits. The screenshot regression uses October 30 03:08 and November 7 07:37 in GMT+8; October 30 must be shown.
+- Chinese retains “临期”; English now says “Next credit expires”. Recovery date, exact time, live countdown, positive credit count and credit expiration remain grouped in the existing summary. Incomplete dates still show unknown.
+- Validation: the screenshot regression failed with November 7 before the fix and passed with October 30 after it. Focused tests, full suite (57 tests; live integrations skipped), 18 native rendering states with English OCR, update-menu checks, release guards, release build with warnings-as-errors, packaging, strict deep signature verification and startup smoke test all passed. Standards and Spec reviews found no actionable issues.
+- Visual evidence: `docs/images/qa/codex-usage-soonest-expiry-light-zhHans.png` and `docs/images/qa/codex-usage-soonest-expiry-dark-english.png` were inspected; both retain recovery date/time/countdown and the positive count with next expiry. These use synthetic relative dates, not the live account. Historical images below document the previous behavior. No installed-app interaction or live-account validation was performed.
+
 ## Update window visibility (1.5.10, 2026-10-24)
 
 - Reproduced the Settings update action in a real MenuBarExtra: the popover stayed visible when the update-window fixture opened. The regression failed with `hiddenBeforeUpdate=false` and both windows visible.

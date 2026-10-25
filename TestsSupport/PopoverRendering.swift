@@ -77,7 +77,7 @@ struct PopoverRendering {
                 let lines = request.results ?? []
                 let recognized = lines.compactMap { $0.topCandidates(1).first?.string }
                 print("Summary OCR: \(recognized)")
-                for required in ["Allowance resets", "Reset credits", "Time left:", "Last credit expires"] {
+                for required in ["Allowance resets", "Reset credits", "Time left:", "Next credit expires"] {
                     if !recognized.contains(where: { $0.contains(required) }) {
                         failures.append("\(label): missing required visible information: \(required)")
                     }
@@ -90,7 +90,7 @@ struct PopoverRendering {
                         failures.append("\(label): news must show one record instead of separate history/forecast rows")
                     }
                 }
-                let expiry = lines.first { $0.topCandidates(1).first?.string.contains("Last credit expires") == true }
+                let expiry = lines.first { $0.topCandidates(1).first?.string.contains("Next credit expires") == true }
                 if expiry.map({ $0.boundingBox.minX > 0.45 }) != true {
                     failures.append("\(label): expiry must stay in the right-hand reset-credit group")
                 }
@@ -99,7 +99,7 @@ struct PopoverRendering {
                 }
                 if !datedLines.contains(where: { $0.boundingBox.minX < 0.4 })
                     || !datedLines.contains(where: { $0.boundingBox.minX > 0.45 }) {
-                    failures.append("\(label): both recovery and last-credit dates must be visible in their own columns")
+                    failures.append("\(label): both recovery and next-credit dates must be visible in their own columns")
                 }
             }
             if creditState == 0 && inset == 0 {

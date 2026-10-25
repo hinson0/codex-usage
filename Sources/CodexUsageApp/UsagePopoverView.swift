@@ -179,7 +179,7 @@ struct UsagePopoverView: View {
                     Text(LocalizationCatalog.format(.resetCountValue, language: controller.language,
                         controller.snapshot?.availableResetCount ?? 0))
                         .font(.system(size: 24, weight: .semibold)).monospacedDigit()
-                    Text(presentation.text(.lastCreditExpiry))
+                    Text(presentation.text(.soonestCreditExpiry))
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                     Text(presentation.resetCreditExpiryText(at: date) ?? presentation.text(.timeUnknown))
                         .font(.system(size: 16, weight: .semibold)).monospacedDigit()
