@@ -46,7 +46,7 @@ Reset news shows only the latest signal from [AI Sentry](https://divin.cc/), fal
 - Longer-window allowance with a compact horizontal progress bar and reset time.
 - Time until the displayed reset, updated every minute, beneath its timestamp.
 - Read-only reset count shown only when one or more resets are available.
-- Automatic refresh on launch, every 60 seconds, and when the popover opens.
+- Automatic refresh on launch and when the popover opens; every 5 minutes normally, or every 2 minutes when either Codex allowance window has less than 10% remaining.
 - Light and Dark appearances.
 - English and Simplified Chinese languages, defaulting to English.
 - Localized “Check for Updates…” action with scheduled Sparkle update checks.

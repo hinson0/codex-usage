@@ -122,6 +122,137 @@ struct PreferencesLocalizationControllerTests {
         #expect(controller.displayError == nil)
     }
 
+    @Test(arguments: [20, 90, 89.9, nil, .nan, .infinity, -.infinity] as [Double?])
+    @MainActor
+    func automaticRefreshReadsImmediatelyThenWaitsFiveMinutesWhenAllowanceIsNotLow(
+        usedPercent: Double?
+    ) async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: usedPercent))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        var waits: [Duration] = []
+
+        await controller.monitorUsage { duration in
+            #expect(await service.readCallCount == waits.count + 1)
+            waits.append(duration)
+            if waits.count == 2 { throw CancellationError() }
+        }
+
+        #expect(waits == [.seconds(300), .seconds(300)])
+        #expect(await service.readCallCount == 2)
+        #expect(!controller.isRefreshing)
+    }
+
+    @Test(arguments: [90.1, 100, 120])
+    @MainActor
+    func automaticRefreshUsesTwoMinutesWhenLongerWindowHasLessThanTenPercentRemaining(
+        usedPercent: Double
+    ) async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: usedPercent))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        var waits: [Duration] = []
+
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            throw CancellationError()
+        }
+
+        #expect(waits == [.seconds(120)])
+        #expect(await service.readCallCount == 1)
+    }
+
+    @Test
+    @MainActor
+    func automaticRefreshUsesTwoMinutesWhenFiveHourWindowIsLow() async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, fiveHourUsedPercent: 95))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        var waits: [Duration] = []
+
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            throw CancellationError()
+        }
+
+        #expect(waits == [.seconds(120)])
+        #expect(await service.readCallCount == 1)
+    }
+
+    @Test
+    @MainActor
+    func automaticRefreshReevaluatesIntervalWhenAllowanceFallsAndRecovers() async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        var waits: [Duration] = []
+
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            switch waits.count {
+            case 1:
+                await service.setSnapshot(makeSnapshot(resetCount: 0, usedPercent: 95))
+            case 2:
+                await service.setSnapshot(makeSnapshot(resetCount: 0, usedPercent: 90))
+            default:
+                throw CancellationError()
+            }
+        }
+
+        #expect(waits == [.seconds(300), .seconds(120), .seconds(300)])
+        #expect(await service.readCallCount == 3)
+    }
+
+    @Test
+    @MainActor
+    func automaticRefreshIgnoresLowAuxiliaryAllowance() async {
+        let auxiliary = RateLimitBucket(
+            limitId: "gpt-reserve", limitName: nil, normalModelSlug: nil,
+            primary: RateLimitWindow(usedPercent: 100, windowDurationMins: 10_080, resetsAt: 999),
+            secondary: nil
+        )
+        let snapshot = UsageSnapshot(response: RateLimitsResponse(
+            rateLimits: auxiliary,
+            rateLimitsByLimitId: ["codex": makeSnapshot(resetCount: 0).primaryBucket!, "gpt-reserve": auxiliary],
+            rateLimitResetCredits: nil
+        ), refreshedAt: .distantPast)
+        let service = FakeUsageService(snapshot: snapshot)
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+        var waits: [Duration] = []
+
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            throw CancellationError()
+        }
+
+        #expect(waits == [.seconds(300)])
+    }
+
+    @Test
+    @MainActor
+    func automaticRefreshStopsWhenCancelledDuringWait() async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0))
+        let context = makeStore()
+        defer { context.defaults.removePersistentDomain(forName: context.name) }
+        let controller = UsageController(service: service, preferences: context.store)
+
+        let monitoring = Task {
+            await controller.monitorUsage { _ in
+                withUnsafeCurrentTask { $0?.cancel() }
+            }
+        }
+        await monitoring.value
+
+        #expect(await service.readCallCount == 1)
+        #expect(!controller.isRefreshing)
+    }
+
     @Test
     @MainActor
     func controllerSerializesOverlappingRefreshes() async {
@@ -140,12 +271,13 @@ struct PreferencesLocalizationControllerTests {
 }
 
 private actor FakeUsageService: UsageService {
-    private let snapshot: UsageSnapshot
+    private var snapshot: UsageSnapshot
     private let readDelay: Duration
     private(set) var readCallCount = 0
     private var error: UsageServiceError?
 
     func setError(_ value: UsageServiceError?) { error = value }
+    func setSnapshot(_ value: UsageSnapshot) { snapshot = value }
 
     init(snapshot: UsageSnapshot, readDelay: Duration = .zero) {
         self.snapshot = snapshot
@@ -162,14 +294,20 @@ private actor FakeUsageService: UsageService {
     }
 }
 
-private func makeSnapshot(resetCount: Int) -> UsageSnapshot {
+private func makeSnapshot(
+    resetCount: Int,
+    usedPercent: Double? = 20,
+    fiveHourUsedPercent: Double? = nil
+) -> UsageSnapshot {
     let response = RateLimitsResponse(
         rateLimits: RateLimitBucket(
             limitId: "codex",
             limitName: nil,
             normalModelSlug: nil,
-            primary: RateLimitWindow(usedPercent: 20, windowDurationMins: 10_080, resetsAt: 999),
-            secondary: nil
+            primary: RateLimitWindow(usedPercent: usedPercent, windowDurationMins: 10_080, resetsAt: 999),
+            secondary: fiveHourUsedPercent.map {
+                RateLimitWindow(usedPercent: $0, windowDurationMins: 300, resetsAt: 999)
+            }
         ),
         rateLimitsByLimitId: nil,
         rateLimitResetCredits: ResetCreditsSummary(availableCount: resetCount)

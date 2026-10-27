@@ -102,6 +102,26 @@ public final class UsageController: ObservableObject {
         objectWillChange.send()
     }
 
+    public func monitorUsage(
+        sleep: (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) async {
+        await refresh()
+        while !Task.isCancelled {
+            let windows = UsageFormatting.windows(in: snapshot?.primaryBucket)
+            let hasLowAllowance = [windows.fiveHour, windows.longer].contains { window in
+                guard let usedPercent = window?.usedPercent, usedPercent.isFinite else { return false }
+                return 100 - usedPercent < 10
+            }
+            do {
+                try await sleep(.seconds(hasLowAllowance ? 120 : 300))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await refresh()
+        }
+    }
+
     public func refresh(forceNews: Bool = false) async {
         guard !operationInProgress else { return }
         operationInProgress = true

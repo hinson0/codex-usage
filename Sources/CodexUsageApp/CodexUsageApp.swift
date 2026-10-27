@@ -32,14 +32,7 @@ private struct StatusItemLabel: View {
     var body: some View {
         StatusItemContent(title: controller.statusTitle)
             .task { await updater.monitorForUpdates() }
-            .task {
-                await controller.refresh()
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(60))
-                    guard !Task.isCancelled else { return }
-                    await controller.refresh()
-                }
-            }
+            .task { await controller.monitorUsage() }
             .onReceive(NotificationCenter.default.publisher(
                 for: NSLocale.currentLocaleDidChangeNotification
             )) { _ in
