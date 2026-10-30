@@ -1,13 +1,20 @@
 import Foundation
 
 public actor CodexAppServerClient: UsageService {
+    private struct ResetCreditCache: Codable {
+        let summary: ResetCreditsSummary
+        let fetchedAt: Date
+    }
+
     private let locator: any CodexBinaryLocating
     private let transportFactory: @Sendable () -> any AppServerTransport
     private let requestTimeout: Duration
     private let now: @Sendable () -> Date
+    private let resetCreditCacheURL: URL
     private var transport: (any AppServerTransport)?
     private var isReady = false
     private var nextRequestId = 1
+    private var resetCreditCache: ResetCreditCache?
 
     public init(
         locator: any CodexBinaryLocating = CodexBinaryLocator(),
@@ -15,20 +22,87 @@ public actor CodexAppServerClient: UsageService {
             ProcessAppServerTransport()
         },
         requestTimeout: Duration = .seconds(10),
-        now: @escaping @Sendable () -> Date = Date.init
+        now: @escaping @Sendable () -> Date = Date.init,
+        resetCreditCacheURL: URL? = nil
     ) {
         self.locator = locator
         self.transportFactory = transportFactory
         self.requestTimeout = requestTimeout
         self.now = now
+        self.resetCreditCacheURL = resetCreditCacheURL ?? FileManager.default
+            .urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("local.codexusage", isDirectory: true)
+            .appendingPathComponent("reset-credits.json")
+        if let data = try? Data(contentsOf: self.resetCreditCacheURL) {
+            resetCreditCache = try? JSONDecoder().decode(ResetCreditCache.self, from: data)
+        }
     }
 
     public func readRateLimits() async throws -> UsageSnapshot {
-        let result: RateLimitsResponse = try await request(
+        let skipsDetails = cachedResetCredits(at: now()) != nil
+        var result: RateLimitsResponse = try await request(
             method: "account/rateLimits/read",
-            params: nil
+            params: skipsDetails ? ["excludeResetCreditDetails": true] : nil
         )
-        return UsageSnapshot(response: result, refreshedAt: now())
+        let summary: ResetCreditsSummary?
+        if skipsDetails, let cached = cachedResetCredits(at: now()),
+           let current = result.rateLimitResetCredits,
+           current.credits == nil, current.availableCount == cached.availableCount {
+            summary = cached
+        } else {
+            if skipsDetails, let current = result.rateLimitResetCredits,
+               current.availableCount > 0, current.credits == nil {
+                // A changed count may mean a credit was used or granted. Refresh its expiry too.
+                clearResetCreditCache()
+                result = try await request(method: "account/rateLimits/read", params: nil)
+            }
+            summary = result.rateLimitResetCredits
+            cacheResetCredits(summary, at: now())
+        }
+        return UsageSnapshot(response: RateLimitsResponse(
+            ordinaryUsageAllowed: result.ordinaryUsageAllowed,
+            rateLimits: result.rateLimits,
+            rateLimitsByLimitId: result.rateLimitsByLimitId,
+            rateLimitResetCredits: summary
+        ), refreshedAt: now())
+    }
+
+    private func cachedResetCredits(at date: Date) -> ResetCreditsSummary? {
+        guard let cached = resetCreditCache else { return nil }
+        let age = date.timeIntervalSince(cached.fetchedAt)
+        let hasExpiredCredit = cached.summary.credits?.contains { credit in
+            credit.status == "available" && credit.resetType == "codexRateLimits"
+                && credit.expiresAt.map { TimeInterval($0) <= date.timeIntervalSince1970 } == true
+        } ?? false
+        guard age >= 0, age < 86_400, !hasExpiredCredit,
+              cached.summary.availableCount >= 0,
+              cached.summary.availableCount == 0 || cached.summary.credits != nil else {
+            clearResetCreditCache()
+            return nil
+        }
+        return cached.summary
+    }
+
+    private func cacheResetCredits(_ summary: ResetCreditsSummary?, at date: Date) {
+        guard let summary, summary.availableCount >= 0,
+              summary.availableCount == 0 || summary.credits != nil else {
+            clearResetCreditCache()
+            return
+        }
+        // Keep only the read-only model, which excludes account and credit identifiers.
+        let entry = ResetCreditCache(summary: summary, fetchedAt: date)
+        resetCreditCache = entry
+        if let data = try? JSONEncoder().encode(entry) {
+            try? FileManager.default.createDirectory(
+                at: resetCreditCacheURL.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+            try? data.write(to: resetCreditCacheURL, options: .atomic)
+        }
+    }
+
+    private func clearResetCreditCache() {
+        resetCreditCache = nil
+        try? FileManager.default.removeItem(at: resetCreditCacheURL)
     }
 
     private func request<Response: Decodable>(
@@ -48,6 +122,9 @@ public actor CodexAppServerClient: UsageService {
             let result = try await awaitResult(id: id, transport: transport)
             return try JSONDecoder().decode(Response.self, from: result)
         } catch {
+            if error as? UsageServiceError == .authenticationRequired {
+                clearResetCreditCache()
+            }
             await invalidate()
             if let serviceError = error as? UsageServiceError { throw serviceError }
             if error is CancellationError { throw UsageServiceError.timeout }
@@ -90,6 +167,9 @@ public actor CodexAppServerClient: UsageService {
                 continue
             }
             guard let responseId = object["id"] as? Int else {
+                if object["method"] as? String == "account/updated" {
+                    clearResetCreditCache()
+                }
                 continue
             }
             guard responseId == id else { continue }
