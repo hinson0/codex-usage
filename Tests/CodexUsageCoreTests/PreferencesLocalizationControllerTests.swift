@@ -124,7 +124,7 @@ struct PreferencesLocalizationControllerTests {
 
     @Test(arguments: [20, 90, 89.9, nil, .nan, .infinity, -.infinity] as [Double?])
     @MainActor
-    func automaticRefreshReadsImmediatelyThenWaitsFiveMinutesWhenAllowanceIsNotLow(
+    func automaticRefreshReadsImmediatelyThenWaitsTenMinutesWhenAllowanceIsNotLow(
         usedPercent: Double?
     ) async {
         let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: usedPercent))
@@ -139,7 +139,7 @@ struct PreferencesLocalizationControllerTests {
             if waits.count == 2 { throw CancellationError() }
         }
 
-        #expect(waits == [.seconds(300), .seconds(300)])
+        #expect(waits == [.seconds(600), .seconds(600)])
         #expect(await service.readCallCount == 2)
         #expect(!controller.isRefreshing)
     }
@@ -203,7 +203,7 @@ struct PreferencesLocalizationControllerTests {
             }
         }
 
-        #expect(waits == [.seconds(300), .seconds(120), .seconds(300)])
+        #expect(waits == [.seconds(600), .seconds(120), .seconds(600)])
         #expect(await service.readCallCount == 3)
     }
 
@@ -231,7 +231,28 @@ struct PreferencesLocalizationControllerTests {
             throw CancellationError()
         }
 
-        #expect(waits == [.seconds(300)])
+        #expect(waits == [.seconds(600)])
+    }
+
+    @Test
+    @MainActor
+    func lowAuxiliaryBucketAloneDoesNotActivateFastRefresh() async {
+        let auxiliary = RateLimitBucket(
+            limitId: "gpt-reserve", limitName: nil, normalModelSlug: nil,
+            primary: RateLimitWindow(usedPercent: 100, windowDurationMins: 10_080, resetsAt: 999),
+            secondary: nil
+        )
+        let snapshot = UsageSnapshot(response: RateLimitsResponse(
+            rateLimits: auxiliary, rateLimitsByLimitId: nil, rateLimitResetCredits: nil
+        ), refreshedAt: .distantPast)
+        let service = FakeUsageService(snapshot: snapshot)
+        let controller = UsageController(service: service, preferences: makeStore().store)
+        var waits: [Duration] = []
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            throw CancellationError()
+        }
+        #expect(waits == [.seconds(600)])
     }
 
     @Test
@@ -268,12 +289,111 @@ struct PreferencesLocalizationControllerTests {
         #expect(controller.snapshot?.availableResetCount == 0)
         #expect(controller.statusTitle == "80%")
     }
+
+    @Test
+    @MainActor
+    func manualRefreshRequestsFreshCreditDetails() async {
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 1))
+        let controller = UsageController(service: service, preferences: makeStore().store)
+        await controller.refresh(forceNews: true)
+        #expect(await service.forceDetailsRequested)
+    }
+
+    @Test
+    @MainActor
+    func newlyLowAllowanceRefreshesExpiredNewsInTheSameRead() async {
+        let clock = ControlledDate()
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: 20))
+        let news = CountingNewsService()
+        let controller = UsageController(service: service, preferences: makeStore().store,
+            newsService: news, now: { clock.date })
+        await controller.refresh()
+        clock.date.addTimeInterval(180)
+        await service.setSnapshot(makeSnapshot(resetCount: 0, usedPercent: 95))
+        await controller.refresh()
+        #expect(await news.calls == 2)
+    }
+
+    @Test
+    @MainActor
+    func newsRefreshRespectsNormalAndLowAllowanceBoundaries() async {
+        for (used, age, expected) in [(20.0, 599.0, 1), (20.0, 600.0, 2),
+                                      (95.0, 119.0, 1), (95.0, 120.0, 2)] {
+            let clock = ControlledDate()
+            let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: used))
+            let news = CountingNewsService()
+            let controller = UsageController(service: service, preferences: makeStore().store,
+                newsService: news, now: { clock.date })
+            await controller.refresh()
+            clock.date.addTimeInterval(age)
+            await controller.refresh()
+            #expect(await news.calls == expected)
+        }
+    }
+
+    @Test
+    @MainActor
+    func manualRefreshReschedulesThePendingAutomaticRead() async {
+        let clock = ControlledDate()
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0))
+        let controller = UsageController(service: service, preferences: makeStore().store,
+            now: { clock.date })
+        var waits: [Duration] = []
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            if waits.count == 1 {
+                clock.date.addTimeInterval(540)
+                await controller.refresh(forceNews: true)
+                clock.date.addTimeInterval(60)
+            } else {
+                throw CancellationError()
+            }
+        }
+        #expect(waits == [.seconds(600), .seconds(540)])
+        #expect(await service.readCallCount == 2)
+    }
+
+    @Test
+    @MainActor
+    func manualRefreshSwitchesPendingTimerToLowAllowanceInterval() async {
+        let clock = ControlledDate()
+        let service = FakeUsageService(snapshot: makeSnapshot(resetCount: 0, usedPercent: 20))
+        let controller = UsageController(service: service, preferences: makeStore().store,
+            now: { clock.date })
+        var waits: [Duration] = []
+        await controller.monitorUsage { duration in
+            waits.append(duration)
+            if waits.count == 1 {
+                clock.date.addTimeInterval(100)
+                await service.setSnapshot(makeSnapshot(resetCount: 0, usedPercent: 95))
+                await controller.refresh(forceNews: true)
+            } else {
+                throw CancellationError()
+            }
+        }
+        #expect(waits == [.seconds(600), .seconds(120)])
+        #expect(await service.readCallCount == 2)
+    }
+}
+
+@MainActor
+private final class ControlledDate {
+    var date = Date(timeIntervalSince1970: 100)
+}
+
+private actor CountingNewsService: ResetNewsService {
+    private(set) var calls = 0
+    func readNews() async throws -> ResetNews {
+        calls += 1
+        return try ResetNews.decode(Data("{\"events\":[]}".utf8))
+    }
 }
 
 private actor FakeUsageService: UsageService {
     private var snapshot: UsageSnapshot
     private let readDelay: Duration
     private(set) var readCallCount = 0
+    private(set) var forceDetailsRequested = false
     private var error: UsageServiceError?
 
     func setError(_ value: UsageServiceError?) { error = value }
@@ -291,6 +411,11 @@ private actor FakeUsageService: UsageService {
             try await Task.sleep(for: readDelay)
         }
         return snapshot
+    }
+
+    func readRateLimits(forceDetails: Bool) async throws -> UsageSnapshot {
+        forceDetailsRequested = forceDetails
+        return try await readRateLimits()
     }
 }
 

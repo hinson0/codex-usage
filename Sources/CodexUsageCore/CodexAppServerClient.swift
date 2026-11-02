@@ -15,6 +15,8 @@ public actor CodexAppServerClient: UsageService {
     private var isReady = false
     private var nextRequestId = 1
     private var resetCreditCache: ResetCreditCache?
+    private var lastRefreshInterval = UsageRefreshPolicy.normalInterval
+    private var accountRevision = 0
 
     public init(
         locator: any CodexBinaryLocating = CodexBinaryLocator(),
@@ -39,13 +41,21 @@ public actor CodexAppServerClient: UsageService {
     }
 
     public func readRateLimits() async throws -> UsageSnapshot {
-        let skipsDetails = cachedResetCredits(at: now()) != nil
+        try await readRateLimits(forceDetails: false)
+    }
+
+    public func readRateLimits(forceDetails: Bool) async throws -> UsageSnapshot {
+        let skipsDetails = !forceDetails && cachedResetCredits(at: now(), maxAge: lastRefreshInterval) != nil
         var result: RateLimitsResponse = try await request(
             method: "account/rateLimits/read",
             params: skipsDetails ? ["excludeResetCreditDetails": true] : nil
         )
+        let interval = UsageRefreshPolicy.interval(
+            for: UsageSnapshot(response: result, refreshedAt: now()).primaryBucket
+        )
+        lastRefreshInterval = interval
         let summary: ResetCreditsSummary?
-        if skipsDetails, let cached = cachedResetCredits(at: now()),
+        if skipsDetails, let cached = cachedResetCredits(at: now(), maxAge: interval),
            let current = result.rateLimitResetCredits,
            current.credits == nil, current.availableCount == cached.availableCount {
             summary = cached
@@ -54,7 +64,18 @@ public actor CodexAppServerClient: UsageService {
                current.availableCount > 0, current.credits == nil {
                 // A changed count may mean a credit was used or granted. Refresh its expiry too.
                 clearResetCreditCache()
-                result = try await request(method: "account/rateLimits/read", params: nil)
+                let revision = accountRevision
+                do {
+                    result = try await request(method: "account/rateLimits/read", params: nil)
+                    lastRefreshInterval = UsageRefreshPolicy.interval(
+                        for: UsageSnapshot(response: result, refreshedAt: now()).primaryBucket
+                    )
+                } catch UsageServiceError.authenticationRequired {
+                    throw UsageServiceError.authenticationRequired
+                } catch {
+                    if revision != accountRevision { throw error }
+                    // Keep the fresh allowance and count; the expiration remains unknown.
+                }
             }
             summary = result.rateLimitResetCredits
             cacheResetCredits(summary, at: now())
@@ -67,14 +88,16 @@ public actor CodexAppServerClient: UsageService {
         ), refreshedAt: now())
     }
 
-    private func cachedResetCredits(at date: Date) -> ResetCreditsSummary? {
+    private func cachedResetCredits(
+        at date: Date, maxAge: TimeInterval = UsageRefreshPolicy.normalInterval
+    ) -> ResetCreditsSummary? {
         guard let cached = resetCreditCache else { return nil }
         let age = date.timeIntervalSince(cached.fetchedAt)
         let hasExpiredCredit = cached.summary.credits?.contains { credit in
             credit.status == "available" && credit.resetType == "codexRateLimits"
                 && credit.expiresAt.map { TimeInterval($0) <= date.timeIntervalSince1970 } == true
         } ?? false
-        guard age >= 0, age < 86_400, !hasExpiredCredit,
+        guard age >= 0, age < maxAge, !hasExpiredCredit,
               cached.summary.availableCount >= 0,
               cached.summary.availableCount == 0 || cached.summary.credits != nil else {
             clearResetCreditCache()
@@ -168,6 +191,7 @@ public actor CodexAppServerClient: UsageService {
             }
             guard let responseId = object["id"] as? Int else {
                 if object["method"] as? String == "account/updated" {
+                    accountRevision += 1
                     clearResetCreditCache()
                 }
                 continue

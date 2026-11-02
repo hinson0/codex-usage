@@ -4,10 +4,12 @@ import SwiftUI
 
 private actor MenuBarRenderService: UsageService {
     var fails = false
+    private(set) var reads = 0
 
     func setFailure(_ value: Bool) { fails = value }
 
     func readRateLimits() async throws -> UsageSnapshot {
+        reads += 1
         try await Task.sleep(for: .milliseconds(CommandLine.arguments.contains("--slow") ? 1_500 : 400))
         if fails { throw UsageServiceError.unavailable("Fixture error that changes the popover height.") }
         return try await RenderUsageService(usedPercent: 6, resetCount: 1).readRateLimits()
@@ -80,6 +82,8 @@ struct MenuBarPopoverRendering: App {
             controller.setLanguage(.zhHans)
             if CommandLine.arguments.contains("--warm") {
                 await controller.refresh()
+            } else {
+                Task { await controller.refresh() }
             }
             try await Task.sleep(for: .milliseconds(200))
             guard let button = NSApp.windows.compactMap(\.contentView)
@@ -116,12 +120,16 @@ struct MenuBarPopoverRendering: App {
             controller.setLanguage(.zhHans)
             controller.setAppearance(.light)
             try await settle()
+            let readsBeforeReopening = await service.reads
             for index in 1...3 {
                 button.performClick(nil)
                 try await settle()
                 button.performClick(nil)
                 try await waitForRefresh()
                 try await capture("reopen-\(index)")
+            }
+            guard await service.reads == readsBeforeReopening else {
+                throw CheckFailure("Reopening the popover triggered a usage refresh")
             }
             print("Native MenuBarExtra checks passed (inset \(Int(inset)))")
             UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
@@ -216,7 +224,10 @@ struct MenuBarPopoverRendering: App {
         }
         guard let view = surface.view, let window = view.window,
               let frame = window.contentView?.superview, window.isVisible else {
-            throw CheckFailure("\(state): actual MenuBarExtra window is not visible")
+            let observedWindow = surface.view?.window
+            throw CheckFailure("\(state): actual MenuBarExtra window is not visible "
+                + "(surface: \(surface.view != nil), window: \(observedWindow != nil), "
+                + "visible: \(observedWindow?.isVisible ?? false), active: \(NSApp.isActive))")
         }
         let path = "\(output)/inset\(Int(inset))-\(state).png"
         let process = Process()

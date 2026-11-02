@@ -8,7 +8,8 @@ final class UpdateCoordinator: ObservableObject {
     let canCheckForUpdates = true
     @Published var hasAvailableUpdate = false
     var onCheckForUpdates: (() -> Void)?
-    func checkForUpdateInformation() {}
+    private(set) var informationChecks = 0
+    func checkForUpdateInformation() { informationChecks += 1 }
     func checkForUpdates() { onCheckForUpdates?() }
 }
 

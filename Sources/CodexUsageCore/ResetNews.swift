@@ -96,6 +96,8 @@ public struct DivinResetNewsService: ResetNewsService {
     public func readNews() async throws -> ResetNews {
         // Public feed: no Codex credentials, browser cookies, or persistent cache.
         let configuration = URLSessionConfiguration.ephemeral
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.httpShouldSetCookies = false
         configuration.timeoutIntervalForRequest = 10
         configuration.timeoutIntervalForResource = 15

@@ -38,10 +38,6 @@ struct UsagePopoverView: View {
         .background(UpdateMenuAppearance(
             title: presentation.checkForUpdatesTitle,
             hasAvailableUpdate: updater.hasAvailableUpdate))
-        .onAppear {
-            updater.checkForUpdateInformation()
-            Task { await controller.refresh() }
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)) { _ in
             controller.notifySystemLocaleChanged()
         }

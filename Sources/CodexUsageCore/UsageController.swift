@@ -41,6 +41,28 @@ public enum UsageDisplayError: Codable, Equatable, Sendable {
 
 public protocol UsageService: Sendable {
     func readRateLimits() async throws -> UsageSnapshot
+    func readRateLimits(forceDetails: Bool) async throws -> UsageSnapshot
+}
+
+public extension UsageService {
+    func readRateLimits(forceDetails: Bool) async throws -> UsageSnapshot {
+        try await readRateLimits()
+    }
+}
+
+enum UsageRefreshPolicy {
+    static let normalInterval: TimeInterval = 600
+    static let lowInterval: TimeInterval = 120
+
+    static func interval(for bucket: RateLimitBucket?) -> TimeInterval {
+        guard bucket?.limitId == "codex" else { return normalInterval }
+        let windows = UsageFormatting.windows(in: bucket)
+        let low = [windows.fiveHour, windows.longer].contains { window in
+            guard let used = window?.usedPercent, used.isFinite else { return false }
+            return 100 - used < 10
+        }
+        return low ? lowInterval : normalInterval
+    }
 }
 
 @MainActor
@@ -59,16 +81,23 @@ public final class UsageController: ObservableObject {
 
     private let service: any UsageService
     private let preferences: PreferencesStore
+    private let now: () -> Date
     private var operationInProgress = false
+    private var monitoring = false
+    private var monitorSleep: Task<Void, Error>?
+    private var manualRefreshRevision = 0
+    private var lastUsageAttempt: Date?
 
     public init(
         service: any UsageService,
         preferences: PreferencesStore = PreferencesStore(),
-        newsService: (any ResetNewsService)? = nil
+        newsService: (any ResetNewsService)? = nil,
+        now: @escaping () -> Date = Date.init
     ) {
         self.newsService = newsService
         self.service = service
         self.preferences = preferences
+        self.now = now
         appearance = preferences.appearance
         language = preferences.language
     }
@@ -103,23 +132,49 @@ public final class UsageController: ObservableObject {
     }
 
     public func monitorUsage(
-        sleep: (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+        sleep: @escaping @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) async {
-        await refresh()
-        while !Task.isCancelled {
-            let windows = UsageFormatting.windows(in: snapshot?.primaryBucket)
-            let hasLowAllowance = [windows.fiveHour, windows.longer].contains { window in
-                guard let usedPercent = window?.usedPercent, usedPercent.isFinite else { return false }
-                return 100 - usedPercent < 10
-            }
-            do {
-                try await sleep(.seconds(hasLowAllowance ? 120 : 300))
-            } catch {
-                return
-            }
-            guard !Task.isCancelled else { return }
-            await refresh()
+        guard !monitoring else { return }
+        monitoring = true
+        defer {
+            monitorSleep?.cancel()
+            monitorSleep = nil
+            monitoring = false
         }
+        if snapshot == nil { await refresh() }
+        var delay = nextRefreshDelay()
+        while !Task.isCancelled {
+            let revision = manualRefreshRevision
+            let scheduledDelay = delay
+            let sleeper = Task { @MainActor in try await sleep(.seconds(scheduledDelay)) }
+            monitorSleep = sleeper
+            do {
+                try await withTaskCancellationHandler {
+                    try await sleeper.value
+                } onCancel: {
+                    sleeper.cancel()
+                }
+            } catch {
+                guard !Task.isCancelled, revision != manualRefreshRevision else { return }
+            }
+            monitorSleep = nil
+            guard !Task.isCancelled else { return }
+            if sleeper.isCancelled && revision == manualRefreshRevision { return }
+            if revision != manualRefreshRevision {
+                delay = nextRefreshDelay()
+                if delay > 0 { continue }
+            }
+            await refresh()
+            delay = nextRefreshDelay()
+        }
+    }
+
+    private func nextRefreshDelay() -> TimeInterval {
+        let interval = UsageRefreshPolicy.interval(for: snapshot?.primaryBucket)
+        let date = now()
+        let attempts = [lastUsageAttempt, newsService == nil ? nil : lastNewsAttempt].compactMap { $0 }
+        guard let oldest = attempts.min() else { return interval }
+        return max(0, interval - max(0, date.timeIntervalSince(oldest))).rounded(.up)
     }
 
     public func refresh(forceNews: Bool = false) async {
@@ -131,16 +186,29 @@ public final class UsageController: ObservableObject {
             operationInProgress = false
         }
         async let newsRead: Void = refreshNews(force: forceNews)
-        await performRead()
+        await performRead(forceDetails: forceNews)
+        lastUsageAttempt = now()
         await newsRead
+        // A fresh quota may shorten the news lifetime in this same cycle.
+        await refreshNews(force: false)
+        if forceNews {
+            manualRefreshRevision += 1
+            monitorSleep?.cancel()
+        }
     }
 
     private func refreshNews(force: Bool) async {
         guard let newsService else { return }
-        if !force, let lastNewsAttempt, Date().timeIntervalSince(lastNewsAttempt) < 300 { return }
-        lastNewsAttempt = Date()
+        let interval = UsageRefreshPolicy.interval(for: snapshot?.primaryBucket)
+        if !force, let lastNewsAttempt {
+            let age = now().timeIntervalSince(lastNewsAttempt)
+            if age >= 0 && age < interval { return }
+        }
         newsLoading = true
-        defer { newsLoading = false }
+        defer {
+            lastNewsAttempt = now()
+            newsLoading = false
+        }
         do {
             resetNews = try await newsService.readNews()
             newsFailed = false
@@ -149,9 +217,9 @@ public final class UsageController: ObservableObject {
         }
     }
 
-    private func performRead() async {
+    private func performRead(forceDetails: Bool) async {
         do {
-            snapshot = try await service.readRateLimits()
+            snapshot = try await service.readRateLimits(forceDetails: forceDetails)
             displayError = nil
         } catch {
             displayError = UsageDisplayError(error)
