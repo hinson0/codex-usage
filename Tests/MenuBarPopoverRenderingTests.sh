@@ -18,8 +18,8 @@ swiftc -O -parse-as-library -swift-version 6 \
   TestsSupport/PopoverFixtures.swift TestsSupport/MenuBarPopoverRendering.swift \
   -o "$output/MenuBarPopoverRendering"
 
-# Requires a logged-in macOS desktop with Screen Recording access. This is
-# deliberately separate from headless tests; only fixture data is used.
+# Requires a logged-in macOS desktop with Accessibility and Screen Recording
+# access. It clicks its own fixture item; it never accesses the live account.
 for inset in 0 10; do
   "$output/MenuBarPopoverRendering" "$inset" "$output" "$@"
 done

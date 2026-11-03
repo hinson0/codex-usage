@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import CodexUsageCore
 import SwiftUI
 
@@ -10,7 +11,7 @@ private actor MenuBarRenderService: UsageService {
 
     func readRateLimits() async throws -> UsageSnapshot {
         reads += 1
-        try await Task.sleep(for: .milliseconds(CommandLine.arguments.contains("--slow") ? 1_500 : 400))
+        try await Task.sleep(for: .milliseconds(CommandLine.arguments.contains("--slow") ? 4_000 : 3_000))
         if fails { throw UsageServiceError.unavailable("Fixture error that changes the popover height.") }
         return try await RenderUsageService(usedPercent: 6, resetCount: 1).readRateLimits()
     }
@@ -90,8 +91,10 @@ struct MenuBarPopoverRendering: App {
                 .compactMap(findStatusButton).first else {
                 throw CheckFailure("Test status button unavailable")
             }
-            button.performClick(nil)
-            try await Task.sleep(for: .milliseconds(100))
+            try await setPopoverVisible(true, using: button)
+            if !CommandLine.arguments.contains("--warm"), !controller.isRefreshing {
+                throw CheckFailure("The loading fixture finished before its screenshot")
+            }
             try await capture(CommandLine.arguments.contains("--warm") ? "refreshing" : "loading")
             try await checkFeedbackLink()
             try await waitForRefresh()
@@ -122,9 +125,11 @@ struct MenuBarPopoverRendering: App {
             try await settle()
             let readsBeforeReopening = await service.reads
             for index in 1...3 {
-                button.performClick(nil)
-                try await settle()
-                button.performClick(nil)
+                if surface.view?.window?.isVisible != true {
+                    try await setPopoverVisible(true, using: button)
+                }
+                try await setPopoverVisible(false, using: button)
+                try await setPopoverVisible(true, using: button)
                 try await waitForRefresh()
                 try await capture("reopen-\(index)")
             }
@@ -139,6 +144,73 @@ struct MenuBarPopoverRendering: App {
             UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
             exit(1)
         }
+    }
+
+    private func setPopoverVisible(_ visible: Bool, using button: NSStatusBarButton) async throws {
+        for _ in 0..<4 {
+            try await clickStatusItem(button)
+            try await settle()
+            if (surface.view?.window?.isVisible == true) == visible { return }
+        }
+        throw CheckFailure("Status item did not \(visible ? "open" : "close") the popover")
+    }
+
+    private func statusItem() -> AXUIElement? {
+        var menu: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            AXUIElementCreateApplication(getpid()), "AXExtrasMenuBar" as CFString, &menu
+        ) == .success, let menu, CFGetTypeID(menu) == AXUIElementGetTypeID() else { return nil }
+        var children: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            menu as! AXUIElement, kAXChildrenAttribute as CFString, &children
+        ) == .success, let items = children as? [AXUIElement], items.count == 1 else { return nil }
+        return items[0]
+    }
+
+    private func clickStatusItem(_ button: NSStatusBarButton) async throws {
+        if statusItem() == nil, let window = button.window,
+           let screen = window.screen, let primary = NSScreen.screens.first {
+            // macOS may place a new status item in its hidden overflow area.
+            let rect = window.convertToScreen(button.convert(button.bounds, to: nil))
+            let y = primary.frame.maxY - rect.midY
+            for x in stride(from: screen.frame.minX, through: screen.frame.maxX, by: 4.0) {
+                var hit: AXUIElement?
+                guard AXUIElementCopyElementAtPosition(
+                    AXUIElementCreateSystemWide(), Float(x), Float(y), &hit
+                ) == .success, let hit else { continue }
+                var identifier: CFTypeRef?
+                guard AXUIElementCopyAttributeValue(hit, "AXIdentifier" as CFString, &identifier) == .success,
+                      identifier as? String == "menu-bar-overflow-indicator" else { continue }
+                guard AXUIElementPerformAction(hit, kAXPressAction as CFString) == .success else {
+                    throw CheckFailure("Could not reveal hidden menu bar items")
+                }
+                try await settle()
+                break
+            }
+        }
+        for _ in 0..<20 {
+            if let item = statusItem() {
+                var value: CFTypeRef?
+                if AXUIElementCopyAttributeValue(item, "AXFrame" as CFString, &value) == .success,
+                   let value, CFGetTypeID(value) == AXValueGetTypeID() {
+                    var rect = CGRect.zero
+                    if AXValueGetValue(value as! AXValue, .cgRect, &rect) {
+                        let point = CGPoint(x: rect.midX, y: rect.midY)
+                        for type in [CGEventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+                            guard let event = CGEvent(mouseEventSource: nil, mouseType: type,
+                                                      mouseCursorPosition: point, mouseButton: .left) else {
+                                throw CheckFailure("Could not create a status item click")
+                            }
+                            event.post(tap: .cghidEventTap)
+                            try await Task.sleep(for: .milliseconds(50))
+                        }
+                        return
+                    }
+                }
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        throw CheckFailure("Status item unavailable; enable Accessibility and reveal hidden menu bar items")
     }
 
     private func settle() async throws {
@@ -216,11 +288,10 @@ struct MenuBarPopoverRendering: App {
     }
 
     private func capture(_ state: String) async throws {
-        // Desktop focus changes can dismiss MenuBarExtra while this test is
-        // running. Restore only our own test window before taking its snapshot.
-        if let window = surface.view?.window, !window.isVisible {
-            window.orderFrontRegardless()
-            try await settle()
+        if surface.view?.window?.isVisible != true,
+           let button = NSApp.windows.compactMap(\.contentView).compactMap(findStatusButton).first {
+            // A focus change can dismiss the popover; reopen it through the real status item.
+            try await setPopoverVisible(true, using: button)
         }
         guard let view = surface.view, let window = view.window,
               let frame = window.contentView?.superview, window.isVisible else {
@@ -246,6 +317,10 @@ struct MenuBarPopoverRendering: App {
         let top = frame.bounds.maxY - rect.maxY
         let bottom = frame.bounds.maxY - rect.minY
         let surfaceOnScreen = window.convertToScreen(view.convert(view.bounds, to: nil))
+        guard surfaceOnScreen.minY >= window.frame.minY - 0.5,
+              surfaceOnScreen.maxY <= window.frame.maxY + 0.5 else {
+            throw CheckFailure("\(state): content extends beyond its window")
+        }
         guard let statusWindow = NSApp.windows.first(where: {
             $0.contentView.flatMap(findStatusButton) != nil
         }) else { throw CheckFailure("\(state): status window unavailable") }
@@ -300,53 +375,39 @@ struct MenuBarPopoverRendering: App {
         guard try alpha((left + right) / 2, top + 8) > 0.99 else {
             throw CheckFailure("\(state): opaque content clipped")
         }
-        try await checkDesktopOutline(state, window: window)
+        try checkWindowShadow(state, window: window)
         print("PASS: inset\(Int(inset))-\(state), surface \(rect)")
     }
 
-    private func checkDesktopOutline(_ state: String, window: NSWindow) async throws {
-        // A white desktop exposes a transparent gap between the content edge and
-        // the native shadow. Black backdrops and shadow-free captures hide it.
-        let backing = NSWindow(contentRect: window.frame.insetBy(dx: -20, dy: -20), styleMask: .borderless,
-                               backing: .buffered, defer: false)
-        backing.backgroundColor = .white
-        backing.hasShadow = false
-        backing.level = NSWindow.Level(rawValue: window.level.rawValue - 1)
-        backing.orderFrontRegardless()
-        defer { backing.orderOut(nil) }
-        try await settle()
-        if !window.isVisible {
-            window.orderFrontRegardless()
-            try await settle()
-        }
-        guard let view = self.surface.view else { throw CheckFailure("Surface unavailable") }
-        let surface = window.convertToScreen(view.convert(view.bounds, to: nil))
-        guard surface.minY >= window.frame.minY - 0.5,
-              surface.maxY <= window.frame.maxY + 0.5 else {
-            throw CheckFailure("\(state): content extends beyond its window; window \(window.frame), surface \(surface)")
-        }
-        let region = window.frame.insetBy(dx: -20, dy: -20)
-        backing.setFrame(region, display: true)
-        let path = "\(output)/inset\(Int(inset))-\(state)-desktop.png"
+    private func checkWindowShadow(_ state: String, window: NSWindow) throws {
+        // Capture the compositor's window and shadow together; compositing the
+        // alpha onto white avoids screen-coordinate ambiguity on multiple displays.
+        let path = "\(output)/inset\(Int(inset))-\(state)-shadow.png"
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        let screenTop = NSScreen.screens[0].frame.maxY
-        process.arguments = ["-x", "-R\(Int(region.minX)),\(Int(screenTop - region.maxY)),\(Int(region.width)),\(Int(region.height))", path]
+        process.arguments = ["-x", "-l\(window.windowNumber)", path]
         try process.run()
         process.waitUntilExit()
         guard process.terminationStatus == 0,
               let bitmap = NSBitmapImageRep(data: try Data(contentsOf: URL(fileURLWithPath: path))) else {
-            throw CheckFailure("\(state): desktop capture failed")
+            throw CheckFailure("\(state): window shadow capture failed")
         }
-        let scale = CGFloat(bitmap.pixelsWide) / region.width
-        let x = Int((surface.midX - region.minX) * scale)
-        let luminance = try (2..<20).map { offset in
-            let y = Int((region.maxY - surface.minY + CGFloat(offset)) * scale)
-            guard x >= 0, x < bitmap.pixelsWide, y >= 0, y < bitmap.pixelsHigh,
+        let x = bitmap.pixelsWide / 2
+        let opaqueRows = (0..<bitmap.pixelsHigh).filter {
+            bitmap.colorAt(x: x, y: $0)?.alphaComponent ?? 0 > 0.99
+        }
+        let scale = window.screen?.backingScaleFactor ?? 1
+        guard let bottom = opaqueRows.last,
+              opaqueRows.count >= Int(window.frame.height * scale * 0.85) else {
+            throw CheckFailure("\(state): captured image does not contain the full window")
+        }
+        let luminance = try (2..<20).map { offset -> CGFloat in
+            let y = bottom + Int(CGFloat(offset) * scale)
+            guard y < bitmap.pixelsHigh,
                   let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else {
-                throw CheckFailure("\(state): shadow sample outside desktop capture")
+                throw CheckFailure("\(state): shadow sample outside window capture")
             }
-            return color.redComponent
+            return 1 - color.alphaComponent + color.redComponent * color.alphaComponent
         }
         guard luminance.prefix(3).min()! < 0.98 else {
             throw CheckFailure("\(state): shadow does not meet the content edge; screenshot: \(path)")
@@ -355,6 +416,7 @@ struct MenuBarPopoverRendering: App {
             throw CheckFailure("\(state): detached shadow below content (\(near) → \(far)); screenshot: \(path)")
         }
     }
+
 }
 
 private struct CheckFailure: Error, CustomStringConvertible {
