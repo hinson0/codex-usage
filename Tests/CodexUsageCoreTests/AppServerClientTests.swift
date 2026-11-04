@@ -196,27 +196,47 @@ struct AppServerClientTests {
     }
 
     @Test
-    func incompleteNewDetailsDoNotReplaceValidCachedExpiration() async throws {
+    func incompleteNewDetailsUseValidCachedExpirationAndRetry() async throws {
         let clock = TestClock(Date(timeIntervalSince1970: 10))
+        let original = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: 2_000_000)]
+        let incomplete = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: nil)]
+        let updated = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: 3_000_000)]
+        let transport = ScriptedTransport(events: [
+            .line(response(id: 0, result: [:])),
+            .line(rateLimitsResponse(id: 1, usedPercent: 27, resetCount: 1, credits: original)),
+            .line(rateLimitsResponse(id: 2, usedPercent: 28, resetCount: 1, credits: incomplete)),
+            .line(rateLimitsResponse(id: 3, usedPercent: 29, resetCount: 1, credits: updated)),
+        ])
+        let client = makeClient(transports: [transport], now: { clock.now })
+        _ = try await client.readRateLimits()
+        clock.advance(by: 601)
+        let refreshed = try await client.readRateLimits()
+        let retried = try await client.readRateLimits()
+        #expect(refreshed.resetCredits == original)
+        #expect(retried.resetCredits == updated)
+        let reads = await transport.sentMessages().filter { $0.method == "account/rateLimits/read" }
+        #expect(reads.map(\.excludesResetCreditDetails) == [false, false, false])
+    }
+
+    @Test
+    func changedCountWithIncompleteDetailsDoesNotUseOldExpiration() async throws {
         let original = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: 2_000_000)]
         let incomplete = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: nil)]
         let transport = ScriptedTransport(events: [
             .line(response(id: 0, result: [:])),
             .line(rateLimitsResponse(id: 1, usedPercent: 27, resetCount: 1, credits: original)),
-            .line(rateLimitsResponse(id: 2, usedPercent: 28, resetCount: 1, credits: incomplete)),
-            .line(rateLimitsResponse(id: 3, usedPercent: 29, resetCount: 1, credits: nil)),
+            .line(rateLimitsResponse(id: 2, usedPercent: 28, resetCount: 2, credits: incomplete)),
         ])
-        let client = makeClient(transports: [transport], now: { clock.now })
+        let client = makeClient(transports: [transport])
         _ = try await client.readRateLimits()
-        clock.advance(by: 601)
-        let unknown = try await client.readRateLimits()
-        let retried = try await client.readRateLimits()
-        #expect(unknown.resetCredits == incomplete)
-        #expect(retried.resetCredits == original)
+
+        let refreshed = try await client.readRateLimits(forceDetails: true)
+        #expect(refreshed.availableResetCount == 2)
+        #expect(refreshed.resetCredits == incomplete)
     }
 
-    @Test
-    func restartDoesNotPresentUnverifiedAccountCache() async throws {
+    @Test(arguments: [false, true])
+    func restartDoesNotPresentUnverifiedAccountCache(partialDetails: Bool) async throws {
         let cacheURL = temporaryCacheURL()
         defer { try? FileManager.default.removeItem(at: cacheURL) }
         let credits = [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: 2_000_000)]
@@ -228,12 +248,14 @@ struct AppServerClientTests {
 
         let restarted = ScriptedTransport(events: [
             .line(response(id: 0, result: [:])),
-            .line(rateLimitsResponse(id: 1, usedPercent: 28, resetCount: 1, credits: nil)),
+            .line(rateLimitsResponse(id: 1, usedPercent: 28, resetCount: 1, credits: partialDetails
+                ? [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: nil)] : nil)),
         ])
         let refreshed = try await makeClient(transports: [restarted], cacheURL: cacheURL).readRateLimits()
 
         #expect(refreshed.availableResetCount == 1)
-        #expect(refreshed.resetCredits.isEmpty)
+        #expect(refreshed.resetCredits == (partialDetails
+            ? [ResetCredit(status: "available", resetType: "codexRateLimits", expiresAt: nil)] : []))
         #expect(await restarted.sentMessages().last?.excludesResetCreditDetails == false)
         #expect(FileManager.default.fileExists(atPath: cacheURL.path))
     }

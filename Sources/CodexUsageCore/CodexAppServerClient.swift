@@ -83,7 +83,7 @@ public actor CodexAppServerClient: UsageService {
                 }
             }
             let current = result.rateLimitResetCredits
-            if let current, current.credits == nil,
+            if let current, !hasCompleteExpiration(current, at: now()),
                let cached = cachedResetCredits(at: now(), maxAge: .infinity),
                current.availableCount == cached.availableCount {
                 summary = cacheBelongsToResponse ? cached : current
@@ -119,15 +119,18 @@ public actor CodexAppServerClient: UsageService {
         return cached.summary
     }
 
-    private func cacheResetCredits(_ summary: ResetCreditsSummary?, at date: Date) {
-        guard let summary else { return }
+    private func hasCompleteExpiration(_ summary: ResetCreditsSummary, at date: Date) -> Bool {
         let credits = summary.credits?.filter {
             $0.status == "available" && $0.resetType == "codexRateLimits"
         } ?? []
-        let hasCompleteExpiration = credits.count == summary.availableCount
+        return credits.count == summary.availableCount
             && credits.allSatisfy { $0.expiresAt.map { TimeInterval($0) > date.timeIntervalSince1970 } == true }
+    }
+
+    private func cacheResetCredits(_ summary: ResetCreditsSummary?, at date: Date) {
+        guard let summary else { return }
         guard summary.availableCount >= 0,
-              summary.availableCount == 0 || hasCompleteExpiration else {
+              summary.availableCount == 0 || hasCompleteExpiration(summary, at: date) else {
             if summary.availableCount == resetCreditCache?.summary.availableCount { return }
             clearResetCreditCache()
             return
