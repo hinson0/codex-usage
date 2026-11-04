@@ -15,6 +15,7 @@ public actor CodexAppServerClient: UsageService {
     private var isReady = false
     private var nextRequestId = 1
     private var resetCreditCache: ResetCreditCache?
+    private var cacheBelongsToCurrentSession = false
     private var lastRefreshInterval = UsageRefreshPolicy.normalInterval
     private var accountRevision = 0
 
@@ -45,11 +46,13 @@ public actor CodexAppServerClient: UsageService {
     }
 
     public func readRateLimits(forceDetails: Bool) async throws -> UsageSnapshot {
-        let skipsDetails = !forceDetails && cachedResetCredits(at: now(), maxAge: lastRefreshInterval) != nil
+        let skipsDetails = !forceDetails && cacheBelongsToCurrentSession
+            && cachedResetCredits(at: now(), maxAge: lastRefreshInterval) != nil
         var result: RateLimitsResponse = try await request(
             method: "account/rateLimits/read",
             params: skipsDetails ? ["excludeResetCreditDetails": true] : nil
         )
+        let cacheBelongsToResponse = cacheBelongsToCurrentSession
         let interval = UsageRefreshPolicy.interval(
             for: UsageSnapshot(response: result, refreshedAt: now()).primaryBucket
         )
@@ -62,8 +65,10 @@ public actor CodexAppServerClient: UsageService {
         } else {
             if skipsDetails, let current = result.rateLimitResetCredits,
                current.availableCount > 0, current.credits == nil {
-                // A changed count may mean a credit was used or granted. Refresh its expiry too.
-                clearResetCreditCache()
+                // A changed count may mean a credit was used or granted.
+                if current.availableCount != resetCreditCache?.summary.availableCount {
+                    clearResetCreditCache()
+                }
                 let revision = accountRevision
                 do {
                     result = try await request(method: "account/rateLimits/read", params: nil)
@@ -77,8 +82,15 @@ public actor CodexAppServerClient: UsageService {
                     // Keep the fresh allowance and count; the expiration remains unknown.
                 }
             }
-            summary = result.rateLimitResetCredits
-            cacheResetCredits(summary, at: now())
+            let current = result.rateLimitResetCredits
+            if let current, current.credits == nil,
+               let cached = cachedResetCredits(at: now(), maxAge: .infinity),
+               current.availableCount == cached.availableCount {
+                summary = cacheBelongsToResponse ? cached : current
+            } else {
+                summary = current
+                cacheResetCredits(summary, at: now())
+            }
         }
         return UsageSnapshot(response: RateLimitsResponse(
             ordinaryUsageAllowed: result.ordinaryUsageAllowed,
@@ -97,24 +109,33 @@ public actor CodexAppServerClient: UsageService {
             credit.status == "available" && credit.resetType == "codexRateLimits"
                 && credit.expiresAt.map { TimeInterval($0) <= date.timeIntervalSince1970 } == true
         } ?? false
-        guard age >= 0, age < maxAge, !hasExpiredCredit,
+        guard age >= 0, !hasExpiredCredit,
               cached.summary.availableCount >= 0,
               cached.summary.availableCount == 0 || cached.summary.credits != nil else {
             clearResetCreditCache()
             return nil
         }
+        guard age < maxAge else { return nil }
         return cached.summary
     }
 
     private func cacheResetCredits(_ summary: ResetCreditsSummary?, at date: Date) {
-        guard let summary, summary.availableCount >= 0,
-              summary.availableCount == 0 || summary.credits != nil else {
+        guard let summary else { return }
+        let credits = summary.credits?.filter {
+            $0.status == "available" && $0.resetType == "codexRateLimits"
+        } ?? []
+        let hasCompleteExpiration = credits.count == summary.availableCount
+            && credits.allSatisfy { $0.expiresAt.map { TimeInterval($0) > date.timeIntervalSince1970 } == true }
+        guard summary.availableCount >= 0,
+              summary.availableCount == 0 || hasCompleteExpiration else {
+            if summary.availableCount == resetCreditCache?.summary.availableCount { return }
             clearResetCreditCache()
             return
         }
         // Keep only the read-only model, which excludes account and credit identifiers.
         let entry = ResetCreditCache(summary: summary, fetchedAt: date)
         resetCreditCache = entry
+        cacheBelongsToCurrentSession = true
         if let data = try? JSONEncoder().encode(entry) {
             try? FileManager.default.createDirectory(
                 at: resetCreditCacheURL.deletingLastPathComponent(), withIntermediateDirectories: true
@@ -125,6 +146,7 @@ public actor CodexAppServerClient: UsageService {
 
     private func clearResetCreditCache() {
         resetCreditCache = nil
+        cacheBelongsToCurrentSession = false
         try? FileManager.default.removeItem(at: resetCreditCacheURL)
     }
 
@@ -242,6 +264,7 @@ public actor CodexAppServerClient: UsageService {
         }
         transport = nil
         isReady = false
+        cacheBelongsToCurrentSession = false
         nextRequestId = 1
     }
 
